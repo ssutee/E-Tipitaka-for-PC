@@ -830,7 +830,7 @@ class ReadingToolFrame(wx.Frame):
             pages = range(data['from'],data['to']-1,-1)        
         
         if ret == wx.ID_OK:
-            text = u"<div align=center><h2>%s</h2><h3>%s</h3>หน้าที่ %s ถึง %s</div><hr>"%(msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
+            text = u"<div align=center><h3>%s</h3><h3>%s</h3><h3>%s</h3>หน้าที่ %s ถึง %s</div><hr>"%(self.GetFullTitle(lang,volume),msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
             for page in pages:
                 for d in self.GetContent(volume,page+1):
                     if lang == 'pali':
@@ -838,10 +838,6 @@ class ReadingToolFrame(wx.Frame):
                     else:
                         content = d['content']
                     content = content.replace(u'\t',u'&nbsp;'*7).replace(u'\x0a',u'<br>').replace(u'\x0b',u'<br>').replace(u'\x0c',u'<br>').replace(u'\x0d',u'<br>')
-                    #content = content.encode('utf8')
-                    #content = content.replace('\t','&nbsp;'*3).replace('\r\n','<br>').replace('\n','<br>').replace('\r','<br>')
-                    #print content
-                    #content = content.decode('utf8')
                     text += u'<div align=right>หน้าที่ %s</div><p>'%(arabic2thai(str(page+1).decode('utf8')))
                     text += u'%s<p><p><p>'%(content)
             self.printer.Print(text,"")
