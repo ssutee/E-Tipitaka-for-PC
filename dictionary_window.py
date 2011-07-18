@@ -100,20 +100,24 @@ class DictWindow(wx.Frame):
 
     def OnTextEntered(self, event):
         text = self.input.GetValue().strip()
-        text = text.replace(u'\u0e0d',u'\uf70f').replace(u'\u0e4d',u'\uf711').replace(u'ฐ',u'\uf700')
-        text = text.encode('utf8')
+
+        text1 = text.replace(u'\u0e0d',u'\uf70f').replace(u'\u0e4d',u'\uf711').replace(u'ฐ',u'\uf700')
+        text1 = text1.encode('utf8')
+
+        text2 = text.replace(u'\u0e0d',u'\uf70f').replace(u'\u0e4d',u'\uf711')
+        text2 = text2.encode('utf8')
 
         self.wordList.DeleteAllItems()
 
         if text != '':
-            items = self.LookupDictSQLite(text,prefix=True)
+            items = self.LookupDictSQLite(text1,text2,prefix=True)
             if len(items) > 0:
                 for i,item in enumerate(items):
                     self.wordList.InsertStringItem(i,item[0])
             else:
-                self.text.SetValue(text.decode('utf8') + u'\n\n'+u'ไม่พบคำนี้ในพจนานุกรม')
+                self.text.SetValue(text + u'\n\n'+u'ไม่พบคำนี้ในพจนานุกรม')
         else:
-                self.text.SetValue(text.decode('utf8') + u'\n'+u'กรุณาป้อนคำที่ต้องการค้นหา')
+            self.text.SetValue(text + u'\n'+u'กรุณาป้อนคำที่ต้องการค้นหา')
             
         #if len(items) > 0:
         #    self.wordList.InsertStringItem(0,items[0][0])
@@ -134,15 +138,22 @@ class DictWindow(wx.Frame):
 
         event.Skip()
 
-    def LookupDictSQLite(self, word, prefix=False):
+    def LookupDictSQLite(self, word1, word2=None, prefix=False):
         cursor = self.conn.cursor()
         if prefix:
-            cursor.execute("SELECT * FROM p2t WHERE headword LIKE '%s%%' "%(word))
-            return cursor.fetchall()
+            if word2:                
+                cursor.execute("SELECT * FROM p2t WHERE headword LIKE '%s%%' OR headword LIKE '%s%%' "%(word1,word2))
+            else:
+                cursor.execute("SELECT * FROM p2t WHERE headword LIKE '%s%%' "%(word1))
+                
+            return cursor.fetchmany(size=50)
         else:
-            cursor.execute("SELECT * FROM p2t WHERE headword = '%s' "%(word))
-            return cursor.fetchone()
-            
+            if word2:
+                cursor.execute("SELECT * FROM p2t WHERE headword = '%s' OR headword = '%s'"%(word1,word2))
+            else:
+                cursor.execute("SELECT * FROM p2t WHERE headword = '%s' "%(word1))
+                
+            return cursor.fetchone()            
 
     def LookupDict(self, word):
         items = self.dbDict['dict'].items(word.encode('utf8'))
