@@ -1,12 +1,29 @@
 #-*- coding:utf-8 -*-
 
 import wx
+from wx.html import HtmlEasyPrinting
+
 import sqlite3, cPickle, re, os.path, sys, codecs
 from xml.etree.ElementTree import Element, ElementTree
 
 from utils import arabic2thai,thai2arabic
 from mydialog import *
 from dictionary_window import DictWindow        
+
+class Printer(HtmlEasyPrinting):
+    def __init__(self):
+        HtmlEasyPrinting.__init__(self)
+    
+    def GetHtmlText(self, text):
+        return text
+        
+    def Print(self, text, doc_name):
+        self.SetHeader(doc_name)
+        self.PrintText(self.GetHtmlText(text), doc_name)
+        
+    def PreviewText(self, text, doc_name):
+        self.SetHeader(doc_name)
+        HtmlEasyPrinting.PreviewText(self, self.GetHtmlText(text))
         
 class ReadingToolFrame(wx.Frame):
     """Frame Class for reading the books"""
@@ -67,7 +84,7 @@ class ReadingToolFrame(wx.Frame):
 
         # set parameters
         self.page = page
-        self.volumn = volumn
+        self.volume = volumn
         self.lang = lang
         self.dirname = '.'
         self.resultWindow = resultWindow
@@ -118,6 +135,8 @@ class ReadingToolFrame(wx.Frame):
         self.sp.SplitVertically(self.leftPanel,self.rightPanel,350)
         self.sp.SetMinimumPaneSize(5)
         
+        # printing
+        self.printer = Printer()
         
     def CreateHeader(self):
         self.titlePanel1 = wx.Panel(self.rightPanel,-1)
@@ -280,6 +299,10 @@ class ReadingToolFrame(wx.Frame):
         saveIcon = wx.Image(os.path.join(sys.path[0],'resources','save.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnSave = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(saveIcon))
         self.btnSave.SetToolTip(wx.ToolTip(u'บันทึกข้อมูลลงไฟล์'))
+
+        printIcon = wx.Image(os.path.join(sys.path[0],'resources','print.png'),wx.BITMAP_TYPE_PNG)
+        self.btnPrint = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(printIcon))
+        self.btnPrint.SetToolTip(wx.ToolTip(u'พิมพ์หน้าที่ต้องการ'))
         
         toolsSizer.Add(self.btnSelFind)
         toolsSizer.Add((5,-1))
@@ -289,6 +312,8 @@ class ReadingToolFrame(wx.Frame):
         if self.lang == 'pali':
             lexiconSizer.Add(self.btnDict)        
             lexiconSizer.Add((30,-1))
+        else:
+            self.lexiconPanel.Hide()
 
         toolsSizer.Add(self.btnLayout)
         toolsSizer.Add((5,-1))
@@ -296,7 +321,8 @@ class ReadingToolFrame(wx.Frame):
         toolsSizer.Add(self.btnUp)
         toolsSizer.Add(self.btnDown)
         toolsSizer.Add((5,-1))
-        toolsSizer.Add(self.btnSave)        
+        toolsSizer.Add(self.btnSave)
+        toolsSizer.Add(self.btnPrint)
         
         self.toolsPanel.SetSizer(toolsSizer)
         self.lexiconPanel.SetSizer(lexiconSizer)
@@ -317,6 +343,7 @@ class ReadingToolFrame(wx.Frame):
         self.btnSelFind.Bind(wx.EVT_BUTTON, self.OnClickSelFind)
         self.btnLayout.Bind(wx.EVT_BUTTON, self.OnClickHide)
         self.btnSave.Bind(wx.EVT_BUTTON, self.OnClickSave)
+        self.btnPrint.Bind(wx.EVT_BUTTON, self.OnClickPrint)
         self.btnStar.Bind(wx.EVT_BUTTON, self.OnShowPopup)
         self.btnFonts.Bind(wx.EVT_BUTTON, self.OnFonts)
         if self.lang == 'pali':
@@ -499,7 +526,7 @@ class ReadingToolFrame(wx.Frame):
             dialog = BookMarkDialog(self,pos=(x,y+h))
             if dialog.ShowModal() == wx.ID_OK:
                 note = dialog.GetName()
-                name = u'%s : %s' %(arabic2thai(u'เล่มที่ %d หน้าที่ %d'%(self.volumn, self.page)),note)
+                name = u'%s : %s' %(arabic2thai(u'เล่มที่ %d หน้าที่ %d'%(self.volume, self.page)),note)
                 newItem = self.popupmenu.Append(-1,name)
                 self.Bind(wx.EVT_MENU, self.OnGotoBookmark,newItem)
             dialog.Destroy()
@@ -511,10 +538,10 @@ class ReadingToolFrame(wx.Frame):
         item = self.popupmenu.FindItemById(event.GetId())
         text = thai2arabic(item.GetText())
         tokens = text.split(' ')
-        self.volumn = int(tokens[1])
+        self.volume = int(tokens[1])
         self.page = int(tokens[3])
         if self.lang != 'thaibt':
-            self.bookLists.SetSelection(self.volumn-1)
+            self.bookLists.SetSelection(self.volume-1)
         self.LoadContent()
         event.Skip()
     
@@ -561,8 +588,8 @@ class ReadingToolFrame(wx.Frame):
         try:
             page = int(page)
             found = False
-            #for r in self.searcher1.documents(volumn=u'%02d'%(self.volumn), page=u'%04d'%(page)):
-            for r in self.GetContent(self.volumn,page):
+            #for r in self.searcher1.documents(volumn=u'%02d'%(self.volume), page=u'%04d'%(page)):
+            for r in self.GetContent(self.volume,page):
                 found = True
             if found:
                 self.page = int(page)
@@ -578,7 +605,7 @@ class ReadingToolFrame(wx.Frame):
         else:
             try:
                 lang = self.lang.encode('utf8')
-                volumn = self.volumn
+                volumn = self.volume
                 sub_vol = 0
                 
                 if len(item.split(u'.')) == 2:
@@ -657,11 +684,11 @@ class ReadingToolFrame(wx.Frame):
             elif lang == 'thaiwn':
                 comp_lang = 'thaimm'
 
-        volumn = self.volumn
+        volumn = self.volume
         page = self.page
 
         # find all items in the page
-        #for d in self.searcher1.documents(volumn=u'%02d'%(self.volumn),page=u'%04d'%(page)):
+        #for d in self.searcher1.documents(volumn=u'%02d'%(self.volume),page=u'%04d'%(page)):
         for d in self.GetContent(volumn,page):
             items = map(int,d['items'].split())
             if lang == 'thaimm':
@@ -778,40 +805,89 @@ class ReadingToolFrame(wx.Frame):
         self.mainWindow.SetStyle(s,t, wx.TextAttr(wx.NullColour,'white',font))    
         event.Skip()
         
-    def OnClickSave(self, event):
+    def OnClickPrint(self, event):
         # choose page range dialog
         page = self.page
-        volumn = self.volumn
+        volume = self.volume
         lang = self.lang
         
-        tmp = self.dbName['%s_%d'%(lang,volumn)].decode('utf8').split()
+        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8').split()
         msg1 = u' '.join(tmp[:3])
         msg2 = u' '.join(tmp[3:])
 
-        num = int(self.dbPage['%s_%d'%(lang,volumn)])
+        num = int(self.dbPage['%s_%d'%(lang,volume)])
         cur = 1
         if page != 0:
             cur = page
             
         data = {'from':cur-1, 'to':cur-1}
-        pageDlg = ChoosePagesDialog(self,msg1,msg2,num,data)
-        if pageDlg.ShowModal() == wx.ID_OK:
-            if data['from'] <= data['to']:
-                pages = range(data['from'],data['to']+1)
-            else:
-                pages = range(data['from'],data['to']-1,-1)
+        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการพิมพ์',msg1,msg2,num,data)        
+        ret = pageDlg.ShowModal()
+
+        if data['from'] <= data['to']:
+            pages = range(data['from'],data['to']+1)
+        else:
+            pages = range(data['from'],data['to']-1,-1)        
+        
+        if ret == wx.ID_OK:
+            text = u"<div align=center><h2>%s</h2><h3>%s</h3>หน้าที่ %s ถึง %s</div><hr>"%(msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
+            for page in pages:
+                for d in self.GetContent(volume,page+1):
+                    if lang == 'pali':
+                        content = d['content'].replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
+                    else:
+                        content = d['content']
+                    content = content.replace(u'\t',u'&nbsp;'*7).replace(u'\x0a',u'<br>').replace(u'\x0b',u'<br>').replace(u'\x0c',u'<br>').replace(u'\x0d',u'<br>')
+                    #content = content.encode('utf8')
+                    #content = content.replace('\t','&nbsp;'*3).replace('\r\n','<br>').replace('\n','<br>').replace('\r','<br>')
+                    #print content
+                    #content = content.decode('utf8')
+                    text += u'<div align=right>หน้าที่ %s</div><p>'%(arabic2thai(str(page+1).decode('utf8')))
+                    text += u'%s<p><p><p>'%(content)
+            self.printer.Print(text,"")
+        
+        pageDlg.Destroy()
+
+        event.Skip()
+        
+        
+    def OnClickSave(self, event):
+        # choose page range dialog
+        page = self.page
+        volume = self.volume
+        lang = self.lang
+        
+        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8').split()
+        msg1 = u' '.join(tmp[:3])
+        msg2 = u' '.join(tmp[3:])
+
+        num = int(self.dbPage['%s_%d'%(lang,volume)])
+        cur = 1
+        if page != 0:
+            cur = page
+            
+        data = {'from':cur-1, 'to':cur-1}
+        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการบันทึก',msg1,msg2,num,data)        
+        ret = pageDlg.ShowModal()
+
+        if data['from'] <= data['to']:
+            pages = range(data['from'],data['to']+1)
+        else:
+            pages = range(data['from'],data['to']-1,-1)        
+        
+        if ret == wx.ID_OK:
             # call searcher volumn, page
             text = u'%s\n%s\n\n'%(msg1,msg2)
             for page in pages:
                 #for d in self.searcher1.documents(volumn=u'%02d'%(volumn),page=u'%04d'%(page+1)):
-                for d in self.GetContent(volumn,page+1):
+                for d in self.GetContent(volume,page+1):
                     if lang == 'pali':
                         content = d['content'].replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
                     else:
                         content = d['content']                
                     text += u' '*60 + u'หน้าที่ %s\n\n'%(arabic2thai(str(page+1).decode('utf8')))
                     text += u'%s\n\n\n'%(content)
-            saveFile = '%s_volumn-%02d_page-%04d-%04d'%(lang,volumn,data['from']+1,data['to']+1)
+            saveFile = '%s_volumn-%02d_page-%04d-%04d'%(lang,volume,data['from']+1,data['to']+1)
             wildcard = u'Plain Text (*.txt)|*.txt'
             saveDlg = wx.FileDialog(self, u'โปรดเลือกไฟล์', self.dirname, saveFile, wildcard, \
                     wx.SAVE | wx.OVERWRITE_PROMPT)
@@ -822,6 +898,7 @@ class ReadingToolFrame(wx.Frame):
                 filehandle.write(text)
                 filehandle.close()
             saveDlg.Destroy()
+        
         pageDlg.Destroy()
 
         event.Skip()
@@ -889,30 +966,35 @@ class ReadingToolFrame(wx.Frame):
         if self.lang != 'thaibt':
             volumn = self.bookLists.GetSelection() + 1
         if volumn > 0:
-            self.volumn = volumn
+            self.volume = volumn
             self.GenStartPage()
         event.Skip()
 
+    def GetFullTitle(self, lang, volume):
+        if lang == 'thai':
+            dlang = u'ไทย'
+            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
+        elif lang == 'pali':
+            dlang = u'บาลี'
+            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
+        elif lang == 'thaimm':
+            title1 = u'พระไตรปิฎก ฉบับมหามกุฏฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(volume)))
+        elif lang == 'thaiwn':
+            title1 = u'พระไตรปิฎก ฉบับวัดนาป่าพง (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(volume)))        
+        elif lang == 'thaimc':
+            title1 = u'พระไตรปิฎก ฉบับมหาจุฬาฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(volume)))
+        else:
+            title1 = u''
+            
+        return title1
+        
     def GenStartPage(self,info=u''):
         self.page = 0
         self.comboCompare.Disable()
         #add header
-        tokens = self.dbName['%s_%d'%(self.lang,self.volumn)].split()
-        
-        title1 = u''
-        if self.lang == 'thai':
-            dlang = u'ไทย'
-            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(self.volumn)))
-        elif self.lang == 'pali':
-            dlang = u'บาลี'
-            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(self.volumn)))
-        elif self.lang == 'thaimm':
-            title1 = u'พระไตรปิฎก ฉบับมหามกุฏฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))
-        elif self.lang == 'thaiwn':
-            title1 = u'พระไตรปิฎก ฉบับวัดนาป่าพง (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))        
-        elif self.lang == 'thaimc':
-            title1 = u'พระไตรปิฎก ฉบับมหาจุฬาฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))        
-        
+        tokens = self.dbName['%s_%d'%(self.lang,self.volume)].split()            
+
+        title1 = self.GetFullTitle(self.lang, self.volume)
         self.title1.SetValue(title1)
         font = wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
         font.SetFaceName(self.font.GetFaceName())
@@ -927,20 +1009,20 @@ class ReadingToolFrame(wx.Frame):
         self.itemNum.SetValue(u'')
         self.statusBar.SetStatusText(u'',0)        
         
-        pages = map(lambda x:u'%s'%(x),range(1,int(self.dbPage['%s_%d'%(self.lang,self.volumn)])+1))
-        text1 = u'\nพระไตรปิฎกเล่มที่ %d มี\n\tตั้งแต่หน้าที่ %d - %d'%(self.volumn, int(pages[0]), int(pages[-1]))
+        pages = map(lambda x:u'%s'%(x),range(1,int(self.dbPage['%s_%d'%(self.lang,self.volume)])+1))
+        text1 = u'\nพระไตรปิฎกเล่มที่ %d มี\n\tตั้งแต่หน้าที่ %d - %d'%(self.volume, int(pages[0]), int(pages[-1]))
         text2 = u''
 
         lang = self.lang.encode('utf8')
-        sub = self.dbItem[lang][self.volumn].keys()
+        sub = self.dbItem[lang][self.volume].keys()
 
         if len(sub) == 1:
-            items = self.dbItem[lang][self.volumn][1].keys()
+            items = self.dbItem[lang][self.volume][1].keys()
             text2 = u'\n\tตั้งแต่ข้อที่ %s - %s'%(items[0],items[-1])
         else:
             text2 = u'\n\tแบ่งเป็น %d เล่มย่อย มีข้อดังนี้'%(len(sub))
             for s in sub:
-                items = self.dbItem[lang][self.volumn][s].keys()
+                items = self.dbItem[lang][self.volume][s].keys()
                 text2 = text2 + '\n\t\t %d) %s.%d - %s.%d'%(s,items[0],s,items[-1],s)
         self.mainWindow.SetValue(arabic2thai(text1 + text2 + u'\n\n' + info))
 
@@ -1057,7 +1139,7 @@ class ReadingToolFrame(wx.Frame):
         
 
     def SetVolumnPage(self, volumn, page):
-        self.volumn = volumn
+        self.volume = volumn
         self.page = page
 
     def LoadContent(self, id=None, display=None, content=None):
@@ -1100,28 +1182,15 @@ class ReadingToolFrame(wx.Frame):
             yield r
 
     def LoadContentNormal(self):
-        totalPage = self.dbPage['%s_%d'%(self.lang,self.volumn)]
-        #for r in self.searcher1.documents(volumn=u'%02d'%self.volumn,page=u'%04d'%self.page):
-        for r in self.GetContent(self.volumn, self.page):
+        totalPage = self.dbPage['%s_%d'%(self.lang,self.volume)]
+        #for r in self.searcher1.documents(volumn=u'%02d'%self.volume,page=u'%04d'%self.page):
+        for r in self.GetContent(self.volume, self.page):
             text = r['content']
 
             #add header
-            tokens = self.dbName['%s_%d'%(self.lang,self.volumn)].split()
+            tokens = self.dbName['%s_%d'%(self.lang,self.volume)].split()
             
-            title1 = u''
-            if self.lang == 'thai':
-                dlang = u'ไทย'
-                title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(self.volumn)))
-            elif self.lang == 'pali':
-                dlang = u'บาลี'
-                title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(self.volumn)))
-            elif self.lang == 'thaimm':
-                title1 = u'พระไตรปิฎก ฉบับมหามกุฏฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))
-            elif self.lang == 'thaiwn':
-                title1 = u'พระไตรปิฎก ฉบับวัดนาป่าพง (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))
-            elif self.lang == 'thaimc':
-                title1 = u'พระไตรปิฎก ฉบับมหาจุฬาฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(self.volumn)))
-            
+            title1 = self.GetFullTitle(self.lang, self.volume)
             self.title1.SetValue(title1)
             font = wx.Font(self.font.GetPointSize()+2, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
             font.SetFaceName(self.font.GetFaceName())            
@@ -1150,10 +1219,10 @@ class ReadingToolFrame(wx.Frame):
                 self.SetContent(unicode(text),unicode(self.keywords))
 
         if self.lang != 'thaibt':
-            self.bookLists.SetSelection(self.volumn-1)
+            self.bookLists.SetSelection(self.volume-1)
 
     def DoNext(self):
-        if self.page < int(self.dbPage['%s_%d'%(self.lang,self.volumn)]):
+        if self.page < int(self.dbPage['%s_%d'%(self.lang,self.volume)]):
             self.page += 1
         self.LoadContent()
 

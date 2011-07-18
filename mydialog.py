@@ -84,8 +84,8 @@ class WarningDialog(wx.Dialog):
         self.SetSizer(mainSizer)
 
 class ChoosePagesDialog(wx.Dialog):
-    def __init__(self,parent,msg1,msg2,num,data):
-        wx.Dialog.__init__(self, parent, -1, u'โปรดเลือกหน้าที่ต้องการบันทึก', size=(350,170))
+    def __init__(self,parent,title,msg1,msg2,num,data):
+        wx.Dialog.__init__(self, parent, -1, title, size=(350,170))
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
         s1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -137,7 +137,7 @@ class ChoosePagesDialog(wx.Dialog):
         mainSizer.Add((-1,15),flag=wx.EXPAND)
         mainSizer.Add(btnSizer,flag=wx.EXPAND)
         self.SetSizer(mainSizer)
-        
+    
 class SelectBooksDialog(wx.Dialog):
     def __init__(self, checkedItems=(), lang='thai'):
         self.lang = lang
