@@ -137,6 +137,10 @@ class ReadingToolFrame(wx.Frame):
         
         # printing
         self.printer = Printer()
+        page_setup_data = self.printer.GetPageSetupData()
+        page_setup_data.SetDefaultMinMargins(False)
+        page_setup_data.SetMarginTopLeft((10,10))
+        page_setup_data.SetMarginBottomRight((10,10))
         
     def CreateHeader(self):
         self.titlePanel1 = wx.Panel(self.rightPanel,-1)
@@ -830,7 +834,9 @@ class ReadingToolFrame(wx.Frame):
             pages = range(data['from'],data['to']-1,-1)        
         
         if ret == wx.ID_OK:
-            text = u"<div align=center><h3>%s</h3><h3>%s</h3><h3>%s</h3>หน้าที่ %s ถึง %s</div><hr>"%(self.GetFullTitle(lang,volume),msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
+            cur_font = self.LoadFont()
+            text = u'<font face="TF Chiangsaen" size=+2>' if cur_font == None else u'<font face="%s" size=+2>'%(cur_font.GetFaceName())
+            text += u"<div align=center><b>%s</b><br><b>%s</b><br><b>%s</b><br>หน้าที่ %s ถึง %s</div><hr>"%(self.GetFullTitle(lang,volume),msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
             for page in pages:
                 for d in self.GetContent(volume,page+1):
                     if lang == 'pali':
@@ -840,6 +846,7 @@ class ReadingToolFrame(wx.Frame):
                     content = content.replace(u'\t',u'&nbsp;'*7).replace(u'\x0a',u'<br>').replace(u'\x0b',u'<br>').replace(u'\x0c',u'<br>').replace(u'\x0d',u'<br>')
                     text += u'<div align=right>หน้าที่ %s</div><p>'%(arabic2thai(str(page+1).decode('utf8')))
                     text += u'%s<p><p><p>'%(content)
+            text += u'</font>'
             self.printer.Print(text,"")
         
         pageDlg.Destroy()

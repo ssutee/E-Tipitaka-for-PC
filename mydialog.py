@@ -112,7 +112,9 @@ class ChoosePagesDialog(wx.Dialog):
         
         rangeSizer.Add((20,-1),1,flag=wx.EXPAND)
         rangeSizer.Add(fromChoice)
+        rangeSizer.Add((5,-1)) 
         rangeSizer.Add(wx.StaticText(self,-1,u' ถึง ',style=wx.ALIGN_CENTER),flag=wx.ALIGN_CENTER_VERTICAL)
+        rangeSizer.Add((5,-1))        
         rangeSizer.Add(toChoice)
         rangeSizer.Add((20,-1),1,flag=wx.EXPAND)
         
