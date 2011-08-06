@@ -141,7 +141,7 @@ class ReadingToolFrame(wx.Frame):
         page_setup_data.SetDefaultMinMargins(False)
         page_setup_data.SetMarginTopLeft((10,10))
         page_setup_data.SetMarginBottomRight((10,10))
-        
+                
     def CreateHeader(self):
         self.titlePanel1 = wx.Panel(self.rightPanel,-1)
         
@@ -688,29 +688,29 @@ class ReadingToolFrame(wx.Frame):
             elif lang == 'thaiwn':
                 comp_lang = 'thaimm'
 
-        volumn = self.volume
+        volume = self.volume
         page = self.page
 
         # find all items in the page
         #for d in self.searcher1.documents(volumn=u'%02d'%(self.volume),page=u'%04d'%(page)):
-        for d in self.GetContent(volumn,page):
+        for d in self.GetContent(volume,page):
             items = map(int,d['items'].split())
             if lang == 'thaimm':
                 vol_origs = map(int,d['volumn_orig'].split())
-                volumn = vol_origs[0]
+                volume = vol_origs[0]
                 lang = 'thaimm_orig'     
         
         found = False
         # find item and sub volumn
         if lang == 'thaimc':
-            item,sub = map(int,self.dbMcmap['v%d-p%d'%(volumn,page)])
+            item,sub = map(int,self.dbMcmap['v%d-p%d'%(volume,page)])
             found = True
         else:
             # get the first item
             item = items[0]
-            for sub in self.dbItem[lang][volumn]:
-                if item in self.dbItem[lang][volumn][sub]:
-                    pages = self.dbItem[lang][volumn][sub][item]
+            for sub in self.dbItem[lang][volume]:
+                if item in self.dbItem[lang][volume][sub]:
+                    pages = self.dbItem[lang][volume][sub][item]
                     if page in pages:
                         found = True
                         break
@@ -721,25 +721,24 @@ class ReadingToolFrame(wx.Frame):
         # find the matched page of comp_lang
         #print found,comp_lang,volumn,sub
 
-        if item in self.dbItem[comp_lang][volumn][sub]:
-            page = self.dbItem[comp_lang][volumn][sub][item][0]
+        if item in self.dbItem[comp_lang][volume][sub]:
+            page = self.dbItem[comp_lang][volume][sub][item][0]
         else:
             page = 0
 
         if comp_lang == 'thaimc':
-            page = int(self.dbMcmap['v%d-%d-i%d'%(volumn,sub,item)])
+            page = int(self.dbMcmap['v%d-%d-i%d'%(volume,sub,item)])
 
         if lang == 'thaimm_orig':
             lang = 'thaimm'
 
         if comp_lang == 'thaimm_orig':
             comp_lang = 'thaimm'
-            if '%d-%d-%d'%(volumn,sub,item) not in self.dbMap['thaimm']:
-                volumn = int(self.dbMap['thaimm']['%d-%d-%d'%(volumn,sub,1)])
-            else:
-                volumn = int(self.dbMap['thaimm']['%d-%d-%d'%(volumn,sub,item)])
-
-        self.resultWindow.CreateReadingFrame(volumn,page,comp_lang,isCompare=True)
+            if '%d-%d-%d'%(volume,sub,item) not in self.dbMap['thaimm']:
+                item = 1
+            volume = int(self.dbMap['thaimm']['%d-%d-%d'%(volume,sub,item)])
+        
+        self.resultWindow.CreateReadingFrame(volume,page, lang=comp_lang,item=item,isCompare=True)
         self.resultWindow.VerticalAlignWindows(lang, comp_lang)
 
         event.Skip()
@@ -1108,7 +1107,7 @@ class ReadingToolFrame(wx.Frame):
                     self.mainWindow.SetStyle(n,n+len(term), wx.TextAttr('purple',wx.NullColour,font))
                     n = self.content.find(term,n+1)
 
-    def SetContent(self,content,keywords=None,display=None,header=None,footer=None):
+    def SetContent(self,content,keywords=None,display=None,header=None,footer=None,scroll=0):
         self.keywords = keywords
         if self.lang == 'pali':
             if 'wxMac' not in wx.PlatformInfo:
@@ -1139,21 +1138,24 @@ class ReadingToolFrame(wx.Frame):
         else:
             self.statusBar.SetStatusText(u'',1)
 
-        
+        if scroll > 0:
+            self.mainWindow.Freeze()
+            x,y = self.mainWindow.PositionToXY(scroll)
+            self.mainWindow.ScrollLines(y)
+            self.mainWindow.Thaw()
 
     def SetVolumnPage(self, volumn, page):
         self.volume = volumn
         self.page = page
 
-    def LoadContent(self, id=None, display=None, content=None):
+    def LoadContent(self, id=None, display=None, content=None, scroll=0):
         if self.lang != 'thaibt':
-            self.LoadContentNormal()
+            self.LoadContentNormal(scroll=scroll)
         else:
-            print id
-            self.LoadContentSpecial(id, '', content)
+            self.LoadContentSpecial(id, '', content, scroll=scroll)
 
-    def LoadContentSpecial(self, id, display, content):
-        self.SetContent(content,'',display)
+    def LoadContentSpecial(self, id, display, content, scroll=0):
+        self.SetContent(content,'',display, scroll=scroll)
 
     def GetContent(self, volumn, page):
         results = self.searcher1.execute("SELECT * From %s WHERE volumn = '%02d' AND page = '%04d'"%(self.lang,volumn,page))
@@ -1184,7 +1186,7 @@ class ReadingToolFrame(wx.Frame):
                 r['content'] = result[4]
             yield r
 
-    def LoadContentNormal(self):
+    def LoadContentNormal(self, scroll=0):
         totalPage = self.dbPage['%s_%d'%(self.lang,self.volume)]
         #for r in self.searcher1.documents(volumn=u'%02d'%self.volume,page=u'%04d'%self.page):
         for r in self.GetContent(self.volume, self.page):
@@ -1215,11 +1217,11 @@ class ReadingToolFrame(wx.Frame):
             self.statusBar.SetStatusText(u'',0)
             self.comboCompare.Enable()
             if self.lang == 'thaiwn':
-                self.SetContent(unicode(text),unicode(self.keywords),display=r['display'])
+                self.SetContent(unicode(text),unicode(self.keywords),display=r['display'],scroll=scroll)
             elif self.lang == 'thaimc':
-                self.SetContent(unicode(text),unicode(self.keywords),display=r['display'],header=r['header'],footer=r['footer'])
+                self.SetContent(unicode(text),unicode(self.keywords),display=r['display'],header=r['header'],footer=r['footer'],scroll=scroll)
             else:
-                self.SetContent(unicode(text),unicode(self.keywords))
+                self.SetContent(unicode(text),unicode(self.keywords),scroll=scroll)
 
         if self.lang != 'thaibt':
             self.bookLists.SetSelection(self.volume-1)
