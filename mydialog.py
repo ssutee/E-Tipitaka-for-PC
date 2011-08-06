@@ -16,13 +16,17 @@ class AboutDialog(wx.Dialog):
         label3 = wx.StaticText(self,-1,u'หากมีคำแนะนำ หรือ พบข้อผิดพลาดของโปรแกรม \nกรุณาแจ้งที่ <e.tipitaka@gmail.com>')
         btnOk = wx.Button(self,wx.ID_OK,u'ตกลง')
         mainSizer = wx.BoxSizer(wx.VERTICAL)
-        mainSizer.Add(label1,0, wx.EXPAND|wx.ALL, 10)
-        mainSizer.Add(label2,0, wx.EXPAND|wx.ALL, 10)
+        
         bottomSizer = wx.BoxSizer(wx.HORIZONTAL)
         bottomSizer.Add(label3,flag=wx.ALIGN_CENTER_VERTICAL)
         bottomSizer.Add((20,20),1,wx.EXPAND)
         bottomSizer.Add(btnOk)
+                
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)
+        mainSizer.Add(label1,0, wx.EXPAND|wx.ALL, 10)
+        mainSizer.Add(label2,0, wx.EXPAND|wx.ALL, 10)                
         mainSizer.Add(bottomSizer,0,wx.EXPAND|wx.ALL, 10)
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)        
         self.SetSizer(mainSizer)
                                  
 class BookMarkDialog(wx.Dialog):
@@ -85,7 +89,7 @@ class WarningDialog(wx.Dialog):
 
 class ChoosePagesDialog(wx.Dialog):
     def __init__(self,parent,title,msg1,msg2,num,data):
-        wx.Dialog.__init__(self, parent, -1, title, size=(350,170))
+        wx.Dialog.__init__(self, parent, -1, title, size=(350,200))
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
         s1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -128,7 +132,7 @@ class ChoosePagesDialog(wx.Dialog):
         btnSizer.Add(btnCancel,flag=wx.EXPAND)
         btnSizer.Add((20,-1),1,flag=wx.EXPAND)
 
-        mainSizer.Add((-1,10),flag=wx.EXPAND)
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)
         mainSizer.Add(s1,flag=wx.EXPAND)
         mainSizer.Add((-1,5),flag=wx.EXPAND)
         mainSizer.Add(s2,flag=wx.EXPAND)
@@ -138,6 +142,8 @@ class ChoosePagesDialog(wx.Dialog):
         mainSizer.Add(rangeSizer,flag=wx.EXPAND)
         mainSizer.Add((-1,15),flag=wx.EXPAND)
         mainSizer.Add(btnSizer,flag=wx.EXPAND)
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)
+        
         self.SetSizer(mainSizer)
     
 class SelectBooksDialog(wx.Dialog):
