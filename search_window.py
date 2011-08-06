@@ -34,7 +34,7 @@ class ResultWindow(wx.html.HtmlWindow):
     def SetKeyWords(self, keywords):
         self.keywords = keywords
 
-    def CreateReadingFrame(self, volumn, page, lang=None,isCompare=False,hide=False):
+    def CreateReadingFrame(self, volumn, page, lang=None, isCompare=False,hide=False, item=None):
         if lang is None:
             lang = self.lang
         keywords = u''
@@ -63,16 +63,23 @@ class ResultWindow(wx.html.HtmlWindow):
             self.bookFrames[lang].Raise()
             self.bookFrames[lang].Iconize(False)
 
+        # scroll to item position
+        scroll_position = 0
+        if isCompare and item != None:
+            for result in self.bookFrames[lang].GetContent(volumn, page):
+                content = result['content']
+                scroll_position = content.find(u'[%s]'%(arabic2thai(unicode(item))))
+                break;
+
         if lang != 'thaibt' and page == 0:
             self.bookFrames[lang].GenStartPage()
         elif lang != 'thaibt' and page != 0:
             self.bookFrames[lang].GenStartPage()
             self.bookFrames[lang].SetVolumnPage(volumn,page)
-            self.bookFrames[lang].LoadContent()
-            
+            self.bookFrames[lang].LoadContent(scroll=scroll_position)
         if hide:
             self.bookFrames[lang].HideBooks()
-
+        
     def VerticalAlignWindows(self, lang1, lang2):
         if len(self.bookFrames) < 2:
             return
@@ -234,7 +241,7 @@ class SearchToolFrame(wx.Frame):
     
     def __init__(self):
         wx.Frame.__init__(self, parent=None, id=-1, 
-            title=u'โปรแกรมตรวจค้นพระไตรปิฎก (E-Tipitaka %s)'%(manifest.__version__),size=(1000,700))
+            title=u'โปรแกรมตรวจหาและเทียบเคียงพุทธวจนจากพระไตรปิฎก (E-Tipitaka %s)'%(manifest.__version__),size=(1000,700))
 
         icon = wx.IconBundle()
         icon.AddIconFromFile(os.path.join(sys.path[0],'resources','e-tri_64_icon.ico'), wx.BITMAP_TYPE_ANY)
@@ -293,8 +300,10 @@ class SearchToolFrame(wx.Frame):
         
         self.text = TipiSearchCtrl(panel, -1,size=(-1,30),doSearch=self.DoFind)
         if 'wxMac' not in wx.PlatformInfo and self.font != None and self.font.IsOk():
-            self.text.SetFont(self.font)
-        elif 'wxMSW' in wx.PlatformInfo:
+            font = self.font
+            font.SetPointSize(16)
+            self.text.SetFont(font)
+        else:
             font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'')   
             self.text.SetFont(font)
     
@@ -450,7 +459,10 @@ class SearchToolFrame(wx.Frame):
                 self.SaveFont(font)
                 self.font = font
                 if 'wxMac' not in wx.PlatformInfo:
+                    size = font.GetPointSize()
+                    font.SetPointSize(16)
                     self.text.SetFont(font)
+                    font.SetPointSize(size)
                 self.resultWindow.SetStandardFonts(font.GetPointSize(),font.GetFaceName())
         dialog.Destroy()
         event.Skip()
@@ -496,22 +508,66 @@ class SearchToolFrame(wx.Frame):
                 read = u''
                 if i in self.read:
                     read = u'(อ่านแล้ว)'
-                text += u'<div><font size="4"><a href="p:%s_%s_%s_%d_%d_%d_%d">%s. %s %s %s %s</a><font color="red"> %s</font></font><br>'%(vol,page,self.lang,now,per,total,i,
-                                                                                             arabic2thai(unicode(i)),
-                                                                                             label1,arabic2thai(vol),label2,arabic2thai(page),read)\
+
+                if int(vol) <= 8:
+                    ccode ="#1e90ff"
+                elif int(vol) <= 33:
+                    ccode ="#ff4500"
+                else:
+                    ccode ="#a020f0"
+
+                text += u'''
+                <div>
+                    <font size="4">
+                        <a href="p:%s_%s_%s_%d_%d_%d_%d">%s. %s %s %s %s</a>
+                        <font color="red"> %s</font>
+                    </font><br>'''%(vol,page,self.lang,now,per,total,i,arabic2thai(unicode(i)),label1,arabic2thai(vol),label2,arabic2thai(page),read)\
                  + u'<font size="4">%s</font>'%(excerpts) + u'<br>'\
-                 + u'<font size="4" color="#378000">%s ข้อที่ %s</font>'%(self.bookNames['%s_%s'%(self.lang,vol.encode('utf8'))].decode('utf8'),arabic2thai(labelItems))\
+                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode,self.bookNames['%s_%s'%(self.lang,vol.encode('utf8'))].decode('utf8'),arabic2thai(labelItems))\
                  + u'</div><br>'
+                 
+                 
             keywords = self.keywords
             if self.lang == 'pali':
                 keywords = self.keywords.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
-            header = u'<div align="center"><font size="3" color="brown">ผลการค้นหา %d - %d จากทั้งหมด %d หน้า สำหรับคำว่า "%s"</font></div>' % (p1+1,p2,self.total,keywords)
+                
+            # Add more info about hit pages
+            v_pages = self.group_results[0]
+            s_pages = self.group_results[1]
+            a_pages = self.group_results[2]
+            
+            info = u'''
+                <div align="center">
+                    <table cellpadding="0">
+                        <tr>
+                            <th align="center"><b><font color="#1e90ff">พระวินัยฯ</font></b></th>
+                            <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+                            <th align="center"><b><font color="#ff4500">พระสุตตันตฯ</font></b></th>
+                            <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+                            <th align="center"><b><font color="#a020f0">พระอภิธรรมฯ</font></b></th>                                                        
+                        </tr>
+                        <tr>
+                            <td align="center">%s หน้า</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
+                            <td align="center">%s หน้า</td>
+                            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
+                            <td align="center">%s หน้า</td>                                                                                
+                        </tr>
+                    </table>
+                </div><br/><p/>
+            ''' % (arabic2thai(unicode(v_pages)),arabic2thai(unicode(s_pages)),arabic2thai(unicode(a_pages)))
+                
+            header = u'''
+                <div align="center">
+                    <font size="3" color="brown">ผลการค้นหา %d - %d จากทั้งหมด %d หน้า สำหรับคำว่า "%s"</font>
+                </div>''' % (p1+1,p2,self.total,keywords)
+                
             suggests = self.DoSuggest(self.keywords)
             hint = u''
             if suggests != []:
                 hint = u'<br><br><div align="right"><font size="3" color="red">หรือคุณหมายถึง: %s</font></div><br>'%(self.MakeUpSuggests(suggests))
             select_pages = self.MakeUpSelectPages(self.pages,now,per,total)
-            self.resultWindow.SetPage(arabic2thai(header) + hint + text + '<br>' + select_pages)
+            self.resultWindow.SetPage(info + arabic2thai(header) + hint + text + '<br>' + select_pages)
             self.statusBar.SetStatusText(u'ผลการค้นหา %d - %d'%(p1+1,p2), 2)
             
         if now == 1:
@@ -549,6 +605,15 @@ class SearchToolFrame(wx.Frame):
 #        elif self.mode == 'all':
 
         self.results = results
+        self.group_results = [0,0,0]
+        for result in self.results:
+            volume = int(result['volumn'])
+            if volume <= 8:
+                self.group_results[0] += 1
+            elif volume <= 33:
+                self.group_results[1] += 1
+            else:
+                self.group_results[2] += 1
         
         self.total = len(self.results)        
         self.pages = self.total/self.per
@@ -619,13 +684,14 @@ class SearchToolFrame(wx.Frame):
     def MakeUpSelectPages(self, pages, now, per, total):
         text = u'ผลการค้นหาทั้งหมด<br>'
         for i in range(1,pages+1):
+            thai_num = arabic2thai(unicode(i))
             if i != now:
                 if i in self.resultWindow.clicked_pages:
-                    text += u'<b><i><a href="n:%d_%d_%d">%d</a></i></b> '%(i,per,total,i)
+                    text += u'<b><i><a href="n:%d_%d_%d">%s</a></i></b> '%(i,per,total,thai_num)
                 else:
-                    text += u'<a href="n:%d_%d_%d">%d</a> '%(i,per,total,i)
+                    text += u'<a href="n:%d_%d_%d">%s</a> '%(i,per,total,thai_num)
             else:
-                text += u'<b>%d</b> '%(i)
+                text += u'<b>%s</b> '%(thai_num)
 
         return '<div align="center">' + text + '</div>'
     
@@ -633,6 +699,13 @@ class SearchToolFrame(wx.Frame):
         label = u'โปรแกรมกำลังจัดแสดงข้อมูล'
         self.resultWindow.SetPage(u'')
         self.statusBar.SetStatusText(u'%s'%(label),0)
+        self.btnFind.Disable()
+        self.btnFind.Refresh()
+        self.btnNext.Disable()
+        self.btnNext.Refresh()
+        self.btnPrev.Disable()
+        self.btnPrev.Refresh()
+
     
     def DisplayFinished(self):
         self.btnFind.Enable()
