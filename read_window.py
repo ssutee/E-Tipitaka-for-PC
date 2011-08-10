@@ -93,6 +93,8 @@ class ReadingToolFrame(wx.Frame):
         self.keywords = keywords
         self.entering = ''
         self.config_file = os.path.join(sys.path[0],'config','style.txt')
+        self.find_position = 0
+        self.fdlg = False
         
         # books (hide/show)    
         self.isHide = False
@@ -185,6 +187,11 @@ class ReadingToolFrame(wx.Frame):
         self.mainWindow = wx.TextCtrl(self.mainWindowPanel, -1, style=wx.TE_READONLY|wx.NO_BORDER|wx.TE_MULTILINE|wx.TE_RICH2)#|wx.TE_DONTWRAP)wx.TE_RICH2|
 
         self.mainWindow.Bind(wx.EVT_CHAR, self.OnChar)
+        self.mainWindow.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        self.Bind(wx.EVT_FIND, self.OnFind)
+        self.Bind(wx.EVT_FIND_NEXT, self.OnFind)
+        self.Bind(wx.EVT_FIND_CLOSE, self.OnFindClose)
+
         self.font = self.LoadFont()
         
         if self.font != None and self.font.IsOk():
@@ -1235,6 +1242,39 @@ class ReadingToolFrame(wx.Frame):
         if self.page > 1:
             self.page -= 1
         self.LoadContent()    
+
+    def OnFindClose(self, event):
+        event.GetDialog().Destroy()
+        self.fdlg = False
+
+    def OnFind(self, event):
+        find_string = event.GetFindString()
+        text = self.mainWindow.GetValue()
+        et = event.GetEventType()
+        if event.GetFlags() == wx.FR_DOWN:
+            p = text.find(find_string, self.mainWindow.GetInsertionPoint()+1)
+        else:
+            p = text.rfind(find_string, 0, self.mainWindow.GetInsertionPoint()-1)
+        if p >= 0:
+            self.mainWindow.SetInsertionPoint(p+len(find_string))
+            self.mainWindow.SetFocus()
+            self.mainWindow.SetSelection(p,p+len(find_string))
+        else:
+            dlg = wx.MessageDialog(self, u'ไม่พบคำว่า "%s"'%(find_string), u'E-Tipitaka', wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def OnKeyDown(self, event):
+        key = event.GetKeyCode()
+        controlDown = event.ControlDown()
+        cmdDown = event.CmdDown()
+        if (controlDown or cmdDown) and key in (ord('F'), ord('f')) and not self.fdlg:
+            self.fdlg = True
+            data = wx.FindReplaceData(wx.FR_DOWN)
+            find_dialog = wx.FindReplaceDialog(self.mainWindow, 
+                data, u'ค้นหาคำในหน้านี้', style=wx.FR_NOMATCHCASE | wx.FR_NOWHOLEWORD)
+            find_dialog.data = data
+            find_dialog.Show(True)
         
     def OnChar(self,event):
         trans  = {3653:49,   47:50,   45:51, 3616:52, 3606:53,
