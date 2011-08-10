@@ -31,7 +31,7 @@ class AboutDialog(wx.Dialog):
                                  
 class BookMarkDialog(wx.Dialog):
     def __init__(self,parent,pos):
-        wx.Dialog.__init__(self,parent,-1, u'โปรดใส่ข้อมูลของคั่นหน้า',size=(200,100),pos=pos)
+        wx.Dialog.__init__(self,parent,-1, u'โปรดใส่ข้อมูลของคั่นหน้า',size=(200,130),pos=pos)
         
         nameLbl = wx.StaticText(self,-1, u'หมายเหตุ :')
         self.name = wx.TextCtrl(self,-1, u'',validator=NotEmptyValidator())
@@ -41,6 +41,7 @@ class BookMarkDialog(wx.Dialog):
         s1.AddGrowableCol(1)
         s1.Add(nameLbl,0,wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         s1.Add(self.name, 0, wx.EXPAND)
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)        
         mainSizer.Add(s1,0,wx.EXPAND|wx.ALL,10)
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.btnOk = wx.Button(self, wx.ID_OK, u'ตกลง',size=(-1,-1))
@@ -52,7 +53,9 @@ class BookMarkDialog(wx.Dialog):
         btnSizer.Add(self.btnCancel)
         btnSizer.Add((20,20),1)
         mainSizer.Add(btnSizer,0,wx.EXPAND|wx.BOTTOM,10)
+        mainSizer.Add((-1,10),1,flag=wx.EXPAND)        
         self.SetSizer(mainSizer)
+        self.Fit()
               
     def GetName(self):
         return self.name.GetValue()
