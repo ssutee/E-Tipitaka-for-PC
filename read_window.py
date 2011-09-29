@@ -80,7 +80,7 @@ class ReadingToolFrame(wx.Frame):
         self.dbMcmap = cPickle.load(f)
         f.close()
         
-        self.bt_tree = cPickle.load(open(os.path.join(sys.path[0],'resources','bt_tree.pkl')))
+        #self.bt_tree = cPickle.load(open(os.path.join(sys.path[0],'resources','bt_tree.pkl')))
 
         # set parameters
         self.page = page
@@ -1275,6 +1275,7 @@ class ReadingToolFrame(wx.Frame):
                 data, u'ค้นหาคำในหน้านี้', style=wx.FR_NOMATCHCASE | wx.FR_NOWHOLEWORD)
             find_dialog.data = data
             find_dialog.Show(True)
+        event.Skip()
         
     def OnChar(self,event):
         trans  = {3653:49,   47:50,   45:51, 3616:52, 3606:53,

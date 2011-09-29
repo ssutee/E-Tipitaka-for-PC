@@ -410,7 +410,6 @@ class SearchToolFrame(wx.Frame):
         mainSizer.Add(sizer1,1,flag=wx.EXPAND)
         mainSizer.Add(sizer2,1,flag=wx.EXPAND)
         
-        self.text.SetFocus()
         panel.SetSizer(mainSizer)
 
         if 'wxMac' in wx.PlatformInfo:
@@ -717,9 +716,10 @@ class SearchToolFrame(wx.Frame):
         self.UpdateResults(self.now,self.per,self.total)
         self.progress.SetValue(0)
         self.statusBar.SetStatusText(u'',0)
+        self.text.SetInsertionPointEnd()
 
     def DoFind(self, keywords):
-        if keywords.strip() == '':
+        if keywords.replace('+',' ').strip() == '':
             return True
 
         self.resultWindow.clicked_pages = [1]
