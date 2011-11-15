@@ -286,15 +286,8 @@ class ReadingToolFrame(wx.Frame):
             self.btnDict = wx.BitmapButton(self.lexiconPanel, -1, wx.BitmapFromImage(dictIcon)) 
             self.btnDict.SetToolTip(wx.ToolTip(u'พจนานุกรมบาลี-ไทย'))
         
-        self.popupmenu = wx.Menu()
-        bookmark = self.popupmenu.Append(-1, u'คั่นหน้านี้')
-        self.Bind(wx.EVT_MENU, self.OnBookmarkSelected, bookmark)
-        delete = self.popupmenu.Append(-1, u'ลบคั่นหน้า')
-        self.Bind(wx.EVT_MENU, self.OnDeleteBookmarkSelected, delete)
-        self.popupmenu.AppendSeparator()
-        
-        self.LoadBookmarks()
-        
+        self.menu_items = self.LoadMenuItems()        
+        self.popupmenu = None
         
         size = self.btnSelFind.GetSize()
         fontsIcon = wx.Image(os.path.join(sys.path[0],'resources','fonts.png'),wx.BITMAP_TYPE_PNG)
@@ -338,9 +331,6 @@ class ReadingToolFrame(wx.Frame):
         self.toolsPanel.SetSizer(toolsSizer)
         self.lexiconPanel.SetSizer(lexiconSizer)
 
-        if 'wxMac' in wx.PlatformInfo:
-            self.btnStar.Hide()
-        
         # top sizer
         self.topSizer.Add(viewPanel,flag=wx.EXPAND)
         self.topSizer.Add(comparePanel,flag=wx.EXPAND)
@@ -360,7 +350,6 @@ class ReadingToolFrame(wx.Frame):
         if self.lang == 'pali':
             self.btnDict.Bind(wx.EVT_BUTTON, self.OnClickDict)
 
-    
     def CreatePaintPanel(self):
         # paint
         self.paintPanel = wx.Panel(self.rightPanel,-1)
@@ -487,7 +476,8 @@ class ReadingToolFrame(wx.Frame):
             id, display, content = result[0], result[1], result[2]
             self.LoadContent(id, display, content)
 
-    def LoadBookmarks(self):
+    def LoadMenuItems(self):
+        menu_items = []
         fav_file = os.path.join(sys.path[0],'config','%s.fav'%(self.lang))
         if os.path.exists(fav_file):
             tmp = []
@@ -499,15 +489,17 @@ class ReadingToolFrame(wx.Frame):
                 tmp.append((v,p,text.strip()))
             tmp.sort()
             for v,p,text in tmp:
-                item = self.popupmenu.Append(-1,text)
-                self.Bind(wx.EVT_MENU,self.OnGotoBookmark,item)
+                menu_items.append(text)
+        return menu_items        
     
+    def LoadBookmarks(self, menu):
+        for text in self.menu_items:
+            item = menu.Append(-1,text)
+            self.Bind(wx.EVT_MENU, self.OnGotoBookmark, item)
+                
     def SaveBookmarks(self):
         out = codecs.open(os.path.join(sys.path[0],'config','%s.fav'%(self.lang)),'w','utf8')
-        tmp = []
-        for item in self.popupmenu.GetMenuItems():
-            tmp.append(item.GetText())
-        for text in tmp[3:]:
+        for text in self.menu_items:
             out.write(text+'\n')
         out.close()
         
@@ -515,20 +507,12 @@ class ReadingToolFrame(wx.Frame):
         self.keywords = keywords
         
     def OnDeleteBookmarkSelected(self, event):
-        tmp = []
-        items = []
-        for item in self.popupmenu.GetMenuItems():
-            tmp.append(item.GetText())
-            items.append(item)
-        choices = tmp[3:]
-        items = items[3:]
-        dialog = wx.MultiChoiceDialog(self, u'โปรดเลือกคั่นหน้าที่ต้องการลบ',u'ตัวเลือกคั่นหน้า',choices)
+        dialog = wx.MultiChoiceDialog(self, 
+            u'โปรดเลือกคั่นหน้าที่ต้องการลบ',u'ตัวเลือกคั่นหน้า', self.menu_items)            
         if dialog.ShowModal() == wx.ID_OK:
-            selected = dialog.GetSelections()
-            for sel in selected:
-                self.popupmenu.RemoveItem(items[sel])
+            for sel in dialog.GetSelections():
+                self.menu_items.remove(self.menu_items[sel])
         dialog.Destroy()
-        event.Skip()
         
     def OnBookmarkSelected(self, event):
         if self.page != 0:
@@ -538,12 +522,10 @@ class ReadingToolFrame(wx.Frame):
             if dialog.ShowModal() == wx.ID_OK:
                 note = dialog.GetName()
                 name = u'%s : %s' %(arabic2thai(u'เล่มที่ %d หน้าที่ %d'%(self.volume, self.page)),note)
-                newItem = self.popupmenu.Append(-1,name)
-                self.Bind(wx.EVT_MENU, self.OnGotoBookmark,newItem)
+                self.menu_items.append(name)
             dialog.Destroy()
         else:
             wx.MessageBox(u'หน้ายังไม่ได้ถูกเลือก',u'พบข้อผิดพลาด')
-        event.Skip()
         
     def OnGotoBookmark(self, event):
         item = self.popupmenu.FindItemById(event.GetId())
@@ -554,7 +536,6 @@ class ReadingToolFrame(wx.Frame):
         if self.lang != 'thaibt':
             self.bookLists.SetSelection(self.volume-1)
         self.LoadContent()
-        event.Skip()
     
     def ZoomIn(self):
         font = self.mainWindow.GetFont()
@@ -565,7 +546,6 @@ class ReadingToolFrame(wx.Frame):
         self.SetHighLight()
         self.SaveFont(font)
         
-
     def ZoomOut(self):
         font = self.mainWindow.GetFont()
         size = font.GetPointSize()
@@ -1049,14 +1029,21 @@ class ReadingToolFrame(wx.Frame):
                 self.dictWindow.SetInput(text)
         else:
             self.statusBar.SetStatusText(u'',0)
-            
         event.Skip()
         
     def OnShowPopup(self, event):
         x,y = self.btnStar.GetPosition()
         w,h = self.btnStar.GetSize()     
+        if (self.popupmenu != None):
+            self.popupmenu.Destroy()
+        self.popupmenu = wx.Menu()
+        bookmark = self.popupmenu.Append(-1, u'คั่นหน้านี้')
+        self.Bind(wx.EVT_MENU, self.OnBookmarkSelected, bookmark)
+        delete = self.popupmenu.Append(-1, u'ลบคั่นหน้า')
+        self.Bind(wx.EVT_MENU, self.OnDeleteBookmarkSelected, delete)
+        self.popupmenu.AppendSeparator()        
+        self.LoadBookmarks(self.popupmenu)
         self.toolsPanel.PopupMenu(self.popupmenu,(x,y+h))
-        event.Skip()
 
     def readConfig(self):
         line = open(self.config_file).readline()

@@ -55,7 +55,7 @@ class BookMarkDialog(wx.Dialog):
         mainSizer.Add(btnSizer,0,wx.EXPAND|wx.BOTTOM,10)
         mainSizer.Add((-1,10),1,flag=wx.EXPAND)        
         self.SetSizer(mainSizer)
-        self.Fit()
+        mainSizer.Fit(self)
               
     def GetName(self):
         return self.name.GetValue()
