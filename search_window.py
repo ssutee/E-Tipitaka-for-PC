@@ -522,7 +522,7 @@ class SearchToolFrame(wx.Frame):
                         <font color="red"> %s</font>
                     </font><br>'''%(vol,page,self.lang,now,per,total,i,arabic2thai(unicode(i)),label1,arabic2thai(vol),label2,arabic2thai(page),read)\
                  + u'<font size="4">%s</font>'%(excerpts) + u'<br>'\
-                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode,self.bookNames['%s_%s'%(self.lang,vol.encode('utf8'))].decode('utf8'),arabic2thai(labelItems))\
+                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode,self.bookNames['%s_%s'%(self.lang,vol.encode('utf8','ignore'))].decode('utf8','ignore'),arabic2thai(labelItems))\
                  + u'</div><br>'
                  
                  

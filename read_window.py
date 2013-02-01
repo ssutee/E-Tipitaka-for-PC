@@ -424,9 +424,9 @@ class ReadingToolFrame(wx.Frame):
         
         naviPanel.SetSizer(naviSizer)
         if self.lang == 'thai' or self.lang == 'pali' or self.lang == 'thaiwn' or self.lang == 'thaimc':
-            books = [u'%s. %s'%(arabic2thai(unicode(x)),self.dbName['%s_%d'%(self.lang,x)].decode('utf8')) for x in range(1,46)]
+            books = [u'%s. %s'%(arabic2thai(unicode(x)),self.dbName['%s_%d'%(self.lang,x)].decode('utf8','ignore')) for x in range(1,46)]
         elif self.lang == 'thaimm':
-            books = [u'%s. %s'%(arabic2thai(unicode(x)),self.dbName['%s_%d'%(self.lang,x)].decode('utf8')) for x in range(1,92)]
+            books = [u'%s. %s'%(arabic2thai(unicode(x)),self.dbName['%s_%d'%(self.lang,x)].decode('utf8','ignore')) for x in range(1,92)]
 
         if self.lang == 'thaimc':
             self.checkBox.Show()
@@ -595,7 +595,7 @@ class ReadingToolFrame(wx.Frame):
             self.GenStartPage()
         else:
             try:
-                lang = self.lang.encode('utf8')
+                lang = self.lang.encode('utf8','ignore')
                 volumn = self.volume
                 sub_vol = 0
                 
@@ -801,7 +801,7 @@ class ReadingToolFrame(wx.Frame):
         volume = self.volume
         lang = self.lang
         
-        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8').split()
+        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
         msg1 = u' '.join(tmp[:3])
         msg2 = u' '.join(tmp[3:])
 
@@ -822,7 +822,7 @@ class ReadingToolFrame(wx.Frame):
         if ret == wx.ID_OK:
             cur_font = self.LoadFont()
             text = u'<font face="TF Chiangsaen" size=+2>' if cur_font == None else u'<font face="%s" size=+2>'%(cur_font.GetFaceName())
-            text += u"<div align=center><b>%s</b><br><b>%s</b><br><b>%s</b><br>หน้าที่ %s ถึง %s</div><hr>"%(self.GetFullTitle(lang,volume),msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8')),arabic2thai(str(data['to']+1).decode('utf8')))
+            text += u"<div align=center><b>%s</b><br><b>%s</b><br><b>%s</b><br>หน้าที่ %s ถึง %s</div><hr>"%(self.GetFullTitle(lang,volume),msg1,msg2,arabic2thai(str(data['from']+1).decode('utf8','ignore')),arabic2thai(str(data['to']+1).decode('utf8','ignore')))
             for page in pages:
                 for d in self.GetContent(volume,page+1):
                     if lang == 'pali':
@@ -830,7 +830,7 @@ class ReadingToolFrame(wx.Frame):
                     else:
                         content = d['content']
                     content = content.replace(u'\t',u'&nbsp;'*7).replace(u'\x0a',u'<br>').replace(u'\x0b',u'<br>').replace(u'\x0c',u'<br>').replace(u'\x0d',u'<br>')
-                    text += u'<div align=right>หน้าที่ %s</div><p>'%(arabic2thai(str(page+1).decode('utf8')))
+                    text += u'<div align=right>หน้าที่ %s</div><p>'%(arabic2thai(str(page+1).decode('utf8','ignore')))
                     text += u'%s<p><p><p>'%(content)
             text += u'</font>'
             self.printer.Print(text,"")
@@ -846,7 +846,7 @@ class ReadingToolFrame(wx.Frame):
         volume = self.volume
         lang = self.lang
         
-        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8').split()
+        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
         msg1 = u' '.join(tmp[:3])
         msg2 = u' '.join(tmp[3:])
 
@@ -874,7 +874,7 @@ class ReadingToolFrame(wx.Frame):
                         content = d['content'].replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
                     else:
                         content = d['content']                
-                    text += u' '*60 + u'หน้าที่ %s\n\n'%(arabic2thai(str(page+1).decode('utf8')))
+                    text += u' '*60 + u'หน้าที่ %s\n\n'%(arabic2thai(str(page+1).decode('utf8','ignore')))
                     text += u'%s\n\n\n'%(content)
             saveFile = '%s_volumn-%02d_page-%04d-%04d'%(lang,volume,data['from']+1,data['to']+1)
             wildcard = u'Plain Text (*.txt)|*.txt'
@@ -990,7 +990,7 @@ class ReadingToolFrame(wx.Frame):
         font.SetPointSize(self.font.GetPointSize()+2)
         self.title1.SetStyle(0,len(title1), wx.TextAttr('blue',wx.NullColour,font))
         
-        title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8'),' '.join(tokens[3:]).decode('utf8'))
+        title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8','ignore'),' '.join(tokens[3:]).decode('utf8','ignore'))
         self.title2.SetValue(title2) 
         self.title2.SetStyle(0,len(title2), wx.TextAttr('blue',wx.NullColour,font))
         
@@ -1002,7 +1002,7 @@ class ReadingToolFrame(wx.Frame):
         text1 = u'\nพระไตรปิฎกเล่มที่ %d มี\n\tตั้งแต่หน้าที่ %d - %d'%(self.volume, int(pages[0]), int(pages[-1]))
         text2 = u''
 
-        lang = self.lang.encode('utf8')
+        lang = self.lang.encode('utf8','ignore')
         sub = self.dbItem[lang][self.volume].keys()
 
         if len(sub) == 1:
@@ -1194,7 +1194,7 @@ class ReadingToolFrame(wx.Frame):
             font = wx.Font(self.font.GetPointSize()+2, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
             font.SetFaceName(self.font.GetFaceName())            
             self.title1.SetStyle(0,len(title1), wx.TextAttr('blue',wx.NullColour,font))
-            title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8'),' '.join(tokens[3:]).decode('utf8'))
+            title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8','ignore'),' '.join(tokens[3:]).decode('utf8','ignore'))
             self.title2.SetValue(title2)
             self.title2.SetStyle(0,len(title2), wx.TextAttr('blue',wx.NullColour,font))
             pageNum = arabic2thai(u'หน้าที่ %s/%s'%(unicode(self.page),totalPage))

@@ -102,10 +102,10 @@ class DictWindow(wx.Frame):
         text = self.input.GetValue().strip()
 
         text1 = text.replace(u'\u0e0d',u'\uf70f').replace(u'\u0e4d',u'\uf711').replace(u'ฐ',u'\uf700')
-        text1 = text1.encode('utf8')
+        text1 = text1.encode('utf8','ignore')
 
         text2 = text.replace(u'\u0e0d',u'\uf70f').replace(u'\u0e4d',u'\uf711')
-        text2 = text2.encode('utf8')
+        text2 = text2.encode('utf8','ignore')
 
         self.wordList.DeleteAllItems()
 
@@ -124,16 +124,16 @@ class DictWindow(wx.Frame):
 
         """
         if len(items) > 0:
-            self.wordList.SetItems(map(lambda x:x[0].decode('utf8'), items))        
+            self.wordList.SetItems(map(lambda x:x[0].decode('utf8','ignore'), items))        
             word = self.wordList.GetString(0)
             item = self.LookupDict(word)
             if item != None:
-                tran = self.dbDict['index'][item[1]].decode('utf8')
+                tran = self.dbDict['index'][item[1]].decode('utf8','ignore')
                 self.text.SetValue(word+u'\n\n'+tran)
             self.wordList.Select(0)
         else:
             self.wordList.Clear()
-            self.text.SetValue(text.decode('utf8') + u'\n\n'+u'ไม่พบคำนี้ในพจนานุกรม')
+            self.text.SetValue(text.decode('utf8','ignore') + u'\n\n'+u'ไม่พบคำนี้ในพจนานุกรม')
         """
 
         event.Skip()
@@ -156,7 +156,7 @@ class DictWindow(wx.Frame):
             return cursor.fetchone()            
 
     def LookupDict(self, word):
-        items = self.dbDict['dict'].items(word.encode('utf8'))
+        items = self.dbDict['dict'].items(word.encode('utf8','ignore'))
         if len(items) > 0:
             return items[0]
         return None

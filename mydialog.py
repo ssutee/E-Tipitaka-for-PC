@@ -160,10 +160,10 @@ class SelectBooksDialog(wx.Dialog):
         f.close()
         if lang == 'thai' or lang == 'pali' or lang == 'thaiwn':
             self.checklist = wx.CheckListBox(self, -1, 
-                choices=[arabic2thai(u'พระไตรปิฎกเล่มที่ %d %s'%(x,db['thai_'+str(x)].decode('utf8'))) for x in range(1,46)])
+                choices=[arabic2thai(u'พระไตรปิฎกเล่มที่ %d %s'%(x,db['thai_'+str(x)].decode('utf8','ignore'))) for x in range(1,46)])
         elif lang == 'thaimm':
             self.checklist = wx.CheckListBox(self, -1, 
-                choices=[arabic2thai(u'พระไตรปิฎกเล่มที่ %d %s'%(x,db['thaimm_'+str(x)].decode('utf8'))) for x in range(1,92)])
+                choices=[arabic2thai(u'พระไตรปิฎกเล่มที่ %d %s'%(x,db['thaimm_'+str(x)].decode('utf8','ignore'))) for x in range(1,92)])
 
         for i in checkedItems:
             self.checklist.Check(i,True)

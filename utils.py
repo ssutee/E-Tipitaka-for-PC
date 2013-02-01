@@ -52,9 +52,9 @@ def parse(data):
     lines = thai2arabic(re.findall('บรรทัดที่ (.+?)\.',meta.strip(),re.S)[0].strip())
     pages = thai2arabic(re.findall('หน้าที่ (.+?)\.',meta.strip(),re.S)[0].strip())
 
-    return dict(content=content.decode('utf8'),volumn=volumn,
-                book_name=book_name.decode('utf8'),sub_volumn=sub_volumn,
-                scroll_name=scroll_name.decode('utf8'),lines=lines,pages=pages)
+    return dict(content=content.decode('utf8','ignore'),volumn=volumn,
+                book_name=book_name.decode('utf8','ignore'),sub_volumn=sub_volumn,
+                scroll_name=scroll_name.decode('utf8','ignore'),lines=lines,pages=pages)
 
 re_string = re.compile(r'(?P<htmlchars>[<&>])|(?P<space>^[ \t]+)|(?P<lineend>\r\n|\r|\n)|(?P<protocal>(^|\s)((http|ftp)://.*?))(\s|$)', re.S|re.M|re.I)
 def plaintext2html(text, tabstop=4):
