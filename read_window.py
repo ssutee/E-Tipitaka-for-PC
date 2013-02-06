@@ -3,7 +3,7 @@
 import wx
 from wx.html import HtmlEasyPrinting
 
-import sqlite3, cPickle, re, os.path, sys, codecs
+import sqlite3, cPickle, re, os.path, sys, codecs, json
 from xml.etree.ElementTree import Element, ElementTree
 
 from utils import arabic2thai,thai2arabic
@@ -25,10 +25,89 @@ class Printer(HtmlEasyPrinting):
         self.SetHeader(doc_name)
         HtmlEasyPrinting.PreviewText(self, self.GetHtmlText(text))
         
+
+FIVE_BOOKS_PAGES = {
+    1:466,
+    2:817,
+    3:1572,
+    4:813,
+    5:614,
+}
+
+FIVE_BOOKS_TITLES = [
+    u'ขุมทรัพย์จากพระโอษฐ์', 
+    u'อริยสัจจากพระโอษฐ์ ๑', 
+    u'อริยสัจจากพระโอษฐ์ ๒', 
+    u'ปฏิจจสมุปบาทจากพระโอษฐ์', 
+    u'พุทธประวัติจากพระโอษฐ์',]
+        
+FIVE_BOOKS_SECTIONS = {
+    1:[
+        u'',
+        u'หมวดที่ ๑ ว่าด้วย การทุศีล',
+        u'หมวดที่ ๒ ว่าด้วย การไม่สังวร',
+        u'หมวดที่ ๓ ว่าด้วย เกียรติและลาภสักการะ',
+        u'หมวดที่ ๔ ว่าด้วย การทำไปตามอำนาจกิเลส',
+        u'หมวดที่ ๕ ว่าด้วย การเป็นทาสตัณหา',
+        u'หมวดที่ ๖ ว่าด้วย การหละหลวมในธรรม',
+        u'หมวดที่ ๗ ว่าด้วย การลืมคำปฏิญาณ',
+        u'หมวดที่ ๘ ว่าด้วย พิษสงทางใจ',
+        u'หมวดที่ ๙ ว่าด้วย การเสียความเป็นผู้หลักผู้ใหญ่',
+        u'หมวดที่ ๑๐ ว่าด้วย การมีศีล',
+        u'หมวดที่ ๑๑ ว่าด้วย การมีสังวร',
+        u'หมวดที่ ๑๒ ว่าด้วย การเป็นอยู่ชอบ',
+        u'หมวดที่ ๑๓ ว่าด้วย การไม่ทำไปตามอำนาจกิเลส',
+        u'หมวดที่ ๑๔ ว่าด้วย การไม่เป็นทาสตัณหา',
+        u'หมวดที่ ๑๕ ว่าด้วย การไม่หละหลวมในธรรม',
+        u'หมวดที่ ๑๖ ว่าด้วย การไม่ลืมคำปฏิญาณ',
+        u'หมวดที่ ๑๗ ว่าด้วย การหมดพิษสงทางใจ',
+        u'หมวดที่ ๑๘ ว่าด้วย การไม่เสียความเป็นผู้หลักผู้ใหญ่',
+        u'หมวดที่ ๑๙ ว่าด้วย เนื้อนาบุญของโลก',                                                            
+    ], 
+    2:[
+        u'ภาคนำ ว่าด้วย ข้อความที่ควรทราบก่อนเกี่ยวกับจตุราริยสัจ',
+        u'ภาค ๑ ว่าด้วย ทุกขอริยสัจ ความจริงอันประเสริฐคือทุกข์',
+        u'ภาค ๒ ว่าด้วย สมุทยอริยสัจ ความจริงอันประเสริฐคือเหตุให้เกิดทุกข์',
+        u'ภาค ๓ ว่าด้วย นิโรธอริยสัจ ความจริงอันประเสริฐคือความดับไม่เหลือของทุกข์',
+    ], 
+    3:[
+        u'',
+        u'',
+        u'',
+        u'',
+        u'ภาค ๔ ว่าด้วย มัคคอริยสัจ ความจริงอันประเสริฐคือมรรค',
+        u'ภาคผนวก ว่าด้วย เรื่องนำมาผนวก เพื่อความสะดวกแก่การอ้างอิงสำหรับเรื่องที่ตรัสซ้ำ ๆ บ่อย ๆ',
+    ], 
+    4:[
+        u'บทนำ ว่าด้วย เรื่องที่ควรทราบก่อนเกี่ยวกับปฏิจจสมุปบาท',
+        u'หมวด ๑ ว่าด้วย ลักษณะ – ความสำคัญ – วัตถุประสงค์ของเรื่องปฏิจจสมุปบาท',
+        u'หมวด ๒ ว่าด้วย ปฏิจจสมุปบาทคืออริยสัจสมบูรณ์แบบ',
+        u'หมวด ๓ ว่าด้วย บาลีแสดงว่าปฏิจจสมุปบาทไม่ใช่เรื่องข้ามภพข้ามชาติ',
+        u'หมวด ๔ ว่าด้วย ปฏิจจสมุปบาทเกิดได้เสมอในชีวิตประจำวันของคนเรา',
+        u'หมวด ๕ ว่าด้วย ปฏิจจสมุปบาทซึ่งแสดงการเกิดดับแห่งกิเลสและความทุกข์',
+        u'หมวด ๖ ว่าด้วย ปฏิจจสมุปบาทที่ตรัสในรูปของการปฏิบัติ',
+        u'หมวด ๗ ว่าด้วย โทษของการไม่รู้และอานิสงส์ของการรู้ปฏิจจสมุปบาท',
+        u'หมวด ๘ ว่าด้วย ปฏิจจสมุปบาทเกี่ยวกับความเป็นพระพุทธเจ้า',
+        u'หมวด ๙ ว่าด้วย ปฏิจจสมุปบาทกับอริยสาวก',
+        u'หมวด ๑๐ ว่าด้วย ปฏิจจสมุปบาทนานาแบบ',
+        u'หมวด ๑๑ ว่าด้วย ลัทธิหรือทิฏฐิที่ขัดกับปฏิจจสมุปบาท',
+        u'หมวด ๑๒ ว่าด้วย ปฏิจจสมุปบาทที่ส่อไปในทางภาษาคน - เพื่อศีลธรรม',
+        u'บทสรุป ว่าด้วย คุณค่าพิเศษของปฏิจจสมุปบาท',
+    ], 
+    5:[
+        u'ภาคนำ ข้อความให้เกิดความสนใจในพุทธประวัติ',
+        u'ภาค ๑ เริ่มแต่การเกิดแห่งวงศ์สากยะ, เรื่องก่อนประสูติ, จนถึงออกผนวช',
+        u'ภาค ๒ เริ่มแต่ออกผนวชแล้วเที่ยวเสาะแสวงหาความรู้ ทรมานพระองค์ จนได้ตรัสรู้',
+        u'ภาค ๓ เริ่มแต่ตรัสรู้แล้วทรงประกอบด้วยพระคุณธรรมต่าง ๆ จนเสด็จไปโปรดปัญจวัคคีย์บรรลุผล',
+        u'ภาค ๔ เรื่องเบ็ดเตล็ดใหญ่น้อยต่าง ๆ ตั้งแต่โปรดปัญจวัคคีย์แล้ว  ไปจนถึงจวนจะปรินิพพาน',
+        u'ภาค ๕ การปรินิพพาน',
+        u'ภาค ๖ เรื่องการบำเพ็ญบารมีในอดีตชาติ ซึ่งเต็มไปด้วยทิฏฐานุคติอันสาวกในภายหลังพึงดำเนินตาม',
+    ]}        
+        
 class ReadingToolFrame(wx.Frame):
     """Frame Class for reading the books"""
     
-    def __init__(self, resultWindow, id, volumn, page, lang='thai', keywords='', size=None, pos=None):
+    def __init__(self, resultWindow, id, volume, page, lang='thai', keywords='', size=None, pos=None):
         self.side = None
         self.dictOpen = False
         self.useInter = False
@@ -46,7 +125,7 @@ class ReadingToolFrame(wx.Frame):
             title = u'อ่านพระไตรปิฎก (ภาษาไทย ฉบับมหาจุฬาฯ)'
 
         w,h = wx.GetDisplaySize()
-        self.margin = 100
+        self.margin = 150
         if size == None:
             size = (w-self.margin,h-self.margin-30)
         if pos == None:
@@ -80,11 +159,11 @@ class ReadingToolFrame(wx.Frame):
         self.dbMcmap = cPickle.load(f)
         f.close()
         
-        #self.bt_tree = cPickle.load(open(os.path.join(sys.path[0],'resources','bt_tree.pkl')))
+        self.bt_tree = json.loads(open(os.path.join(sys.path[0],'resources','bt_toc.json')).read())
 
         # set parameters
         self.page = page
-        self.volume = volumn
+        self.volume = volume
         self.lang = lang
         self.dirname = '.'
         self.resultWindow = resultWindow
@@ -143,6 +222,9 @@ class ReadingToolFrame(wx.Frame):
         page_setup_data.SetDefaultMinMargins(False)
         page_setup_data.SetMarginTopLeft((10,10))
         page_setup_data.SetMarginBottomRight((10,10))
+        
+        if self.lang == 'thaibt':
+            self.bookLists.SelectItem(self.FirstVolume, True)
                 
     def CreateHeader(self):
         self.titlePanel1 = wx.Panel(self.rightPanel,-1)
@@ -231,17 +313,6 @@ class ReadingToolFrame(wx.Frame):
         comparePanel = wx.Panel(self.rightPanel,-1)
         compareSizer = wx.StaticBoxSizer(wx.StaticBox(comparePanel, -1, u'เทียบเคียงกับ'), orient=wx.HORIZONTAL)
 
-        #if self.lang == 'thai':
-        #    self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'บาลี  (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (วัดนาป่าพง)',u'ไทย (มหาจุฬาฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        #elif self.lang == 'pali':
-        #    self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'ไทย  (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (วัดนาป่าพง)',u'ไทย (มหาจุฬาฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        #elif self.lang == 'thaimm':
-        #    self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'ไทย (บาลีสยามรัฐ)',u'บาลี  (บาลีสยามรัฐ)',u'ไทย (วัดนาป่าพง)',u'ไทย (มหาจุฬาฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        #elif self.lang == 'thaiwn':
-        #    self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        #elif self.lang == 'thaimc':
-        #    self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (วัดนาป่าพง)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-
         if self.lang == 'thai':
             self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'บาลี  (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
         elif self.lang == 'pali':
@@ -251,10 +322,8 @@ class ReadingToolFrame(wx.Frame):
         elif self.lang == 'thaimc':
             self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)'], style=wx.CB_DROPDOWN|wx.CB_READONLY)
         elif self.lang == 'thaibt':
-            self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY)
-
-
-
+            self.comboCompare = wx.ComboBox(comparePanel, -1, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY)            
+            
         self.comboCompare.Disable()
         self.comboCompare.Bind(wx.EVT_COMBOBOX,self.OnSelectCompare)
 
@@ -409,6 +478,8 @@ class ReadingToolFrame(wx.Frame):
         self.textItem = wx.TextCtrl(naviPanel, -1, size=(50,-1),style=wx.TE_PROCESS_ENTER)
         self.textItem.Bind(wx.EVT_TEXT_ENTER, self.OnPressEnterItem)
         self.textItem.Bind(wx.EVT_TEXT, self.OnPressEnterItem)
+        if self.lang == 'thaibt':
+            self.textItem.Enable(False)
         
         self.checkBox = wx.CheckBox(naviPanel,-1)
         self.checkBox.Bind(wx.EVT_CHECKBOX, self.OnCheckInter)
@@ -441,9 +512,9 @@ class ReadingToolFrame(wx.Frame):
             self.bookLists.SetSelection(0)
             self.bookLists.Bind(wx.EVT_LISTBOX, self.OnSelectBook)
         else:
-            self.bookLists = wx.TreeCtrl(self, -1, wx.DefaultPosition, wx.DefaultSize, style=wx.TR_HIDE_ROOT|wx.TR_HAS_BUTTONS)
+            self.bookLists = wx.TreeCtrl(self.leftPanel, -1, wx.DefaultPosition, wx.DefaultSize, style=wx.TR_HIDE_ROOT|wx.TR_HAS_BUTTONS)
             self.bookLists.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnSelChanged)
-            self.CreateTree(None, self.bookLists)
+            self.CreateTree(None, self.bookLists)            
 
         leftSizer = wx.BoxSizer(wx.VERTICAL)
         leftSizer.Add(naviPanel)
@@ -451,30 +522,40 @@ class ReadingToolFrame(wx.Frame):
         self.leftPanel.SetSizer(leftSizer)
 
     def CreateTree(self, data, tree):
-        
-        def AddItems(tree, parent, etnode):
-            item = etnode.attrib['topic'] 
-            if item == 'root':
-                new_parent = parent
-            else:
-                new_parent = tree.AppendItem(parent,item)
-                tree.SetPyData(new_parent,etnode.attrib['id'])
-            for sub in etnode:
-                AddItems(tree, new_parent, sub)
-
         root = tree.AddRoot('root')
-        AddItems(tree, root, self.bt_tree)
+        keys = self.bt_tree.keys()
+        keys.sort()
+        for key in keys:
+            volume = tree.AppendItem(root, FIVE_BOOKS_TITLES[int(key)-1])
+            tree.SetPyData(volume, tuple(self.bt_tree[key][0]) + (None,) )
+            if int(key) == 1:
+                self.FirstVolume = volume
+            secs = map(int, self.bt_tree[key][1].keys())
+            secs.sort()            
+            for sec in secs:
+                section = tree.AppendItem(volume, FIVE_BOOKS_SECTIONS[int(key)][int(sec)])
+                tree.SetPyData(section, tuple(self.bt_tree[key][1][str(sec)]) + (int(sec),))
         child, cookie = tree.GetFirstChild(root)
         tree.Expand(child)
 
     def OnSelChanged(self, event):
-        item = event.GetItem()
-        id = self.bookLists.GetItemPyData(item)
-        self.searcher1.execute("SELECT * From %s WHERE idnum = '%s'"%(self.lang,id))
+        info = self.bookLists.GetItemPyData(event.GetItem())
+        self.LoadFiveBookContent(info[0], info[1], info[2])        
+        
+    def LoadFiveBookContent(self, volume, page, section=None):
+        self.searcher1.execute('SELECT * FROM speech WHERE book=? AND page=?', (volume, page))
         result = self.searcher1.fetchone()
-        if result != None:
-            id, display, content = result[0], result[1], result[2]
-            self.LoadContent(id, display, content)
+        if result:
+            self.page = page
+            self.volume = volume
+            if section:
+                self.section = section
+            elif len(result[2].split()[1].split('.')) > 1:
+                self.section = int(result[2].split()[1].split('.')[1])
+            else:
+                self.section = 0
+            self.LoadContent(content=result[3])   
+            self.GenStartPage()     
 
     def LoadMenuItems(self):
         menu_items = []
@@ -510,8 +591,11 @@ class ReadingToolFrame(wx.Frame):
         dialog = wx.MultiChoiceDialog(self, 
             u'โปรดเลือกคั่นหน้าที่ต้องการลบ',u'ตัวเลือกคั่นหน้า', self.menu_items)            
         if dialog.ShowModal() == wx.ID_OK:
+            items = []
             for sel in dialog.GetSelections():
-                self.menu_items.remove(self.menu_items[sel])
+                items.append(self.menu_items[sel])
+            for item in items:
+                self.menu_items.remove(item)                
         dialog.Destroy()
         
     def OnBookmarkSelected(self, event):
@@ -535,7 +619,15 @@ class ReadingToolFrame(wx.Frame):
         self.page = int(tokens[3])
         if self.lang != 'thaibt':
             self.bookLists.SetSelection(self.volume-1)
-        self.LoadContent()
+            self.LoadContent()
+        else:
+            root = self.bookLists.GetRootItem()
+            child, cookie = self.bookLists.GetFirstChild(root)
+            for i in xrange(self.volume):
+                child = self.bookLists.GetNextSibling(child)
+            self.bookLists.SelectItem(child, True)
+            self.page = int(tokens[3])
+            self.LoadFiveBookContent(self.volume, self.page)
     
     def ZoomIn(self):
         font = self.mainWindow.GetFont()
@@ -576,27 +668,35 @@ class ReadingToolFrame(wx.Frame):
         self.pageNum.SetValue(u'%d%%'%(percentage*100))
 	
     def GotoPage(self, page):
-        try:
-            page = int(page)
-            found = False
-            #for r in self.searcher1.documents(volumn=u'%02d'%(self.volume), page=u'%04d'%(page)):
-            for r in self.GetContent(self.volume,page):
-                found = True
-            if found:
-                self.page = int(page)
-                self.LoadContent()
-            else:
+        if self.lang != 'thaibt':
+            try:
+                page = int(page)
+                found = False
+                for r in self.GetContent(self.volume, page):
+                    found = True
+                if found:
+                    self.page = int(page)
+                    self.LoadContent()
+                else:
+                    self.GenStartPage(u'ผลการค้นหา : ไม่พบหน้าที่ต้องการ')                
+            except ValueError,e:
                 self.GenStartPage(u'ผลการค้นหา : ไม่พบหน้าที่ต้องการ')
-        except ValueError,e:
-            self.GenStartPage(u'ผลการค้นหา : ไม่พบหน้าที่ต้องการ')
+        else:
+            try:
+                self.LoadFiveBookContent(self.volume, int(page))
+            except ValueError,e:
+                pass
     
     def GotoItem(self, item):
+        if self.lang == 'thaibt':
+            return
+
         if item == u'':
             self.GenStartPage()
         else:
             try:
                 lang = self.lang.encode('utf8','ignore')
-                volumn = self.volume
+                volume = self.volume
                 sub_vol = 0
                 
                 if len(item.split(u'.')) == 2:
@@ -606,10 +706,10 @@ class ReadingToolFrame(wx.Frame):
                     sub_vol = 1
                 
                 if self.useInter:
-                    self.page = int(self.dbMcmap['v%d-%d-i%d'%(volumn,sub_vol,item)])
+                    self.page = int(self.dbMcmap['v%d-%d-i%d'%(volume,sub_vol,item)])
                     self.LoadContent()
-                elif not self.useInter and sub_vol in self.dbItem[lang][volumn] and item in self.dbItem[lang][volumn][sub_vol]:
-                    self.page = self.dbItem[lang][volumn][sub_vol][item][0]
+                elif not self.useInter and sub_vol in self.dbItem[lang][volume] and item in self.dbItem[lang][volume][sub_vol]:
+                    self.page = self.dbItem[lang][volume][sub_vol][item][0]
                     self.LoadContent()
                 else:
                     self.GenStartPage(u'ผลการค้นหา : ไม่พบข้อที่ต้องการ')
@@ -679,7 +779,6 @@ class ReadingToolFrame(wx.Frame):
         page = self.page
 
         # find all items in the page
-        #for d in self.searcher1.documents(volumn=u'%02d'%(self.volume),page=u'%04d'%(page)):
         for d in self.GetContent(volume,page):
             items = map(int,d['items'].split())
             if lang == 'thaimm':
@@ -706,7 +805,6 @@ class ReadingToolFrame(wx.Frame):
             comp_lang = 'thaimm_orig'
 
         # find the matched page of comp_lang
-        #print found,comp_lang,volumn,sub
 
         if item in self.dbItem[comp_lang][volume][sub]:
             page = self.dbItem[comp_lang][volume][sub][item][0]
@@ -801,17 +899,23 @@ class ReadingToolFrame(wx.Frame):
         volume = self.volume
         lang = self.lang
         
-        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
-        msg1 = u' '.join(tmp[:3])
-        msg2 = u' '.join(tmp[3:])
-
-        num = int(self.dbPage['%s_%d'%(lang,volume)])
+        if self.lang != 'thaibt':
+            tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
+            msg1 = u' '.join(tmp[:3])
+            msg2 = u' '.join(tmp[3:])
+            num = int(self.dbPage['%s_%d'%(lang,volume)])
+        else:
+            msg1 = FIVE_BOOKS_TITLES[self.volume]
+            msg2 = u''
+            num = FIVE_BOOKS_PAGES[self.volume]
+        
         cur = 1
         if page != 0:
             cur = page
             
         data = {'from':cur-1, 'to':cur-1}
-        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการพิมพ์',msg1,msg2,num,data)        
+        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการพิมพ์', msg1, msg2, num, data)       
+        pageDlg.Center()         
         ret = pageDlg.ShowModal()
 
         if data['from'] <= data['to']:
@@ -846,17 +950,23 @@ class ReadingToolFrame(wx.Frame):
         volume = self.volume
         lang = self.lang
         
-        tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
-        msg1 = u' '.join(tmp[:3])
-        msg2 = u' '.join(tmp[3:])
+        if self.lang != 'thaibt':
+            tmp = self.dbName['%s_%d'%(lang,volume)].decode('utf8','ignore').split()
+            msg1 = u' '.join(tmp[:3])
+            msg2 = u' '.join(tmp[3:])
+            num = int(self.dbPage['%s_%d'%(lang,volume)])
+        else:
+            msg1 = FIVE_BOOKS_TITLES[self.volume]
+            msg2 = u''
+            num = FIVE_BOOKS_PAGES[self.volume]
 
-        num = int(self.dbPage['%s_%d'%(lang,volume)])
         cur = 1
         if page != 0:
             cur = page
             
         data = {'from':cur-1, 'to':cur-1}
-        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการบันทึก',msg1,msg2,num,data)        
+        pageDlg = ChoosePagesDialog(self,u'โปรดเลือกหน้าที่ต้องการบันทึก',msg1,msg2,num,data)
+        pageDlg.Center()        
         ret = pageDlg.ShowModal()
 
         if data['from'] <= data['to']:
@@ -868,7 +978,6 @@ class ReadingToolFrame(wx.Frame):
             # call searcher volumn, page
             text = u'%s\n%s\n\n'%(msg1,msg2)
             for page in pages:
-                #for d in self.searcher1.documents(volumn=u'%02d'%(volumn),page=u'%04d'%(page+1)):
                 for d in self.GetContent(volume,page+1):
                     if lang == 'pali':
                         content = d['content'].replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
@@ -952,10 +1061,9 @@ class ReadingToolFrame(wx.Frame):
         return font
                 
     def OnSelectBook(self, event):
-        if self.lang != 'thaibt':
-            volumn = self.bookLists.GetSelection() + 1
-        if volumn > 0:
-            self.volume = volumn
+        volume = self.bookLists.GetSelection() + 1
+        if volume > 0:
+            self.volume = volume
             self.GenStartPage()
         event.Skip()
 
@@ -977,43 +1085,66 @@ class ReadingToolFrame(wx.Frame):
             
         return title1
         
-    def GenStartPage(self,info=u''):
-        self.page = 0
+    def GenStartPage(self, info=u''):
+        if self.lang != 'thaibt':            
+            self.page = 0
+            
         self.comboCompare.Disable()
-        #add header
-        tokens = self.dbName['%s_%d'%(self.lang,self.volume)].split()            
 
-        title1 = self.GetFullTitle(self.lang, self.volume)
-        self.title1.SetValue(title1)
+        # add header
+
+        if self.lang != 'thaibt':
+            title1 = self.GetFullTitle(self.lang, self.volume)            
+        else:
+            title1 = FIVE_BOOKS_TITLES[int(self.volume)-1]
+            
+        self.title1.SetValue(title1)        
         font = wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
         font.SetFaceName(self.font.GetFaceName())
         font.SetPointSize(self.font.GetPointSize()+2)
-        self.title1.SetStyle(0,len(title1), wx.TextAttr('blue',wx.NullColour,font))
+        self.title1.SetStyle(0, len(title1), wx.TextAttr('blue',wx.NullColour,font))
         
-        title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8','ignore'),' '.join(tokens[3:]).decode('utf8','ignore'))
-        self.title2.SetValue(title2) 
+        if self.lang != 'thaibt':
+            tokens = self.dbName['%s_%d'%(self.lang,self.volume)].split()                        
+            title2 = u'%s %s'%(' '.join(tokens[:3]).decode('utf8','ignore'),' '.join(tokens[3:]).decode('utf8','ignore'))
+        elif self.section != None:
+            title2 = FIVE_BOOKS_SECTIONS[self.volume][self.section]
+        else:
+            title2 = u''
+            
+        self.title2.SetValue(title2)             
         self.title2.SetStyle(0,len(title2), wx.TextAttr('blue',wx.NullColour,font))
         
-        self.pageNum.SetValue(u'')
-        self.itemNum.SetValue(u'')
-        self.statusBar.SetStatusText(u'',0)        
-        
-        pages = map(lambda x:u'%s'%(x),range(1,int(self.dbPage['%s_%d'%(self.lang,self.volume)])+1))
-        text1 = u'\nพระไตรปิฎกเล่มที่ %d มี\n\tตั้งแต่หน้าที่ %d - %d'%(self.volume, int(pages[0]), int(pages[-1]))
-        text2 = u''
-
-        lang = self.lang.encode('utf8','ignore')
-        sub = self.dbItem[lang][self.volume].keys()
-
-        if len(sub) == 1:
-            items = self.dbItem[lang][self.volume][1].keys()
-            text2 = u'\n\tตั้งแต่ข้อที่ %s - %s'%(items[0],items[-1])
+        if self.lang != 'thaibt':
+            self.pageNum.SetValue(u'')
         else:
-            text2 = u'\n\tแบ่งเป็น %d เล่มย่อย มีข้อดังนี้'%(len(sub))
-            for s in sub:
-                items = self.dbItem[lang][self.volume][s].keys()
-                text2 = text2 + '\n\t\t %d) %s.%d - %s.%d'%(s,items[0],s,items[-1],s)
-        self.mainWindow.SetValue(arabic2thai(text1 + text2 + u'\n\n' + info))
+            font.SetPointSize(self.font.GetPointSize()-4)
+            pageNum = arabic2thai(u'หน้าที่ %s/%s'%(unicode(self.page), FIVE_BOOKS_PAGES[self.volume]))
+            self.pageNum.SetStyle(0,len(pageNum), wx.TextAttr('#378000', wx.NullColour, font))
+            self.pageNum.SetValue(pageNum)
+        
+        self.itemNum.SetValue(u'')
+        
+        self.statusBar.SetStatusText(u'', 0)        
+        
+        if self.lang != 'thaibt':
+            pages = map(lambda x:u'%s'%(x),range(1,int(self.dbPage['%s_%d'%(self.lang,self.volume)])+1))
+            text1 = u'\nพระไตรปิฎกเล่มที่ %d มี\n\tตั้งแต่หน้าที่ %d - %d'%(self.volume, int(pages[0]), int(pages[-1]))
+            text2 = u''
+            lang = self.lang.encode('utf8','ignore')
+            sub = self.dbItem[lang][self.volume].keys()
+
+            if len(sub) == 1:
+                items = self.dbItem[lang][self.volume][1].keys()
+                text2 = u'\n\tตั้งแต่ข้อที่ %s - %s'%(items[0],items[-1])
+            else:
+                text2 = u'\n\tแบ่งเป็น %d เล่มย่อย มีข้อดังนี้'%(len(sub))
+                for s in sub:
+                    items = self.dbItem[lang][self.volume][s].keys()
+                    text2 = text2 + '\n\t\t %d) %s.%d - %s.%d'%(s,items[0],s,items[-1],s)
+            self.mainWindow.SetValue(arabic2thai(text1 + text2 + u'\n\n' + info))
+        else:
+            pass
 
         if 'wxMac' in wx.PlatformInfo:
             font = self.mainWindow.GetFont()
@@ -1084,15 +1215,14 @@ class ReadingToolFrame(wx.Frame):
 
 
     def SetHighLight(self):
-        if self.lang == 'thai' or self.lang == 'thaimm' or self.lang == 'thaiwn' or self.lang == 'thaimc':
+        if self.lang == 'thai' or self.lang == 'thaimm' or self.lang == 'thaiwn' or self.lang == 'thaimc' or self.lang == 'thaibt':
             keywords = self.keywords
         elif self.lang == 'pali':
             if 'wxMac' not in wx.PlatformInfo:
                 keywords = self.keywords.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
             else:
                 keywords = self.keywords
-        #font = self.mainWindow.GetFont()
-        #self.mainWindow.SetFont(font)
+                
         if self.content != u'' and keywords != u'':
             font = self.mainWindow.GetFont()
             for term in keywords.replace('+',' ').split():
@@ -1138,32 +1268,33 @@ class ReadingToolFrame(wx.Frame):
             self.mainWindow.ScrollLines(y)
             self.mainWindow.Thaw()
 
-    def SetVolumnPage(self, volumn, page):
-        self.volume = volumn
+    def SetVolumnPage(self, volume, page):
+        self.volume = volume
         self.page = page
 
     def LoadContent(self, id=None, display=None, content=None, scroll=0):
         if self.lang != 'thaibt':
             self.LoadContentNormal(scroll=scroll)
         else:
-            self.LoadContentSpecial(id, '', content, scroll=scroll)
+            self.SetContent(content, '', None, scroll=scroll)
 
-    def LoadContentSpecial(self, id, display, content, scroll=0):
-        self.SetContent(content,'',display, scroll=scroll)
-
-    def GetContent(self, volumn, page):
-        results = self.searcher1.execute("SELECT * From %s WHERE volumn = '%02d' AND page = '%04d'"%(self.lang,volumn,page))
+    def GetContent(self, volume, page):
+        if self.lang != 'thaibt':            
+            select = 'SELECT * FROM %s WHERE volumn = ? AND page = ?'%(self.lang)
+            args = ('%02d'%(volume), '%04d'%(page))
+        else:
+            select = 'SELECT * FROM speech WHERE book=? AND page=?'
+            args = (volume, page)
+            
+        results = self.searcher1.execute(select, args)
         for result in results:
             r = {}
             if self.lang == 'thai' or self.lang == 'pali':
-                #c.execute('CREATE TABLE thai (volumn text, page text, items text, content text)')
-                #c.execute('CREATE TABLE pali (volumn text, page text, items text, content text)')
                 r['volumn'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
                 r['content'] = result[3]
             elif self.lang == 'thaimc':
-                #c.execute('CREATE TABLE thaimc (volumn text, page text, items text, header text, footer text, display text, content text)')
                 r['volumn'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
@@ -1172,17 +1303,17 @@ class ReadingToolFrame(wx.Frame):
                 r['display'] = result[5]
                 r['content'] = result[6]
             elif self.lang == 'thaimm':
-                #c.execute('CREATE TABLE thaimm (volumn text, volumn_orig text, page text, items text, content text)')
                 r['volumn'] = result[0]
                 r['volumn_orig'] = result[1]
                 r['page'] = result[2]
                 r['items'] = result[3]
                 r['content'] = result[4]
+            elif self.lang == 'thaibt':
+                r['content'] = result[3]
             yield r
 
     def LoadContentNormal(self, scroll=0):
         totalPage = self.dbPage['%s_%d'%(self.lang,self.volume)]
-        #for r in self.searcher1.documents(volumn=u'%02d'%self.volume,page=u'%04d'%self.page):
         for r in self.GetContent(self.volume, self.page):
             text = r['content']
 
@@ -1221,14 +1352,20 @@ class ReadingToolFrame(wx.Frame):
             self.bookLists.SetSelection(self.volume-1)
 
     def DoNext(self):
-        if self.page < int(self.dbPage['%s_%d'%(self.lang,self.volume)]):
-            self.page += 1
-        self.LoadContent()
+        if self.lang != 'thaibt':            
+            if self.page < int(self.dbPage['%s_%d'%(self.lang,self.volume)]):
+                self.page += 1
+            self.LoadContent()
+        else:
+            self.LoadFiveBookContent(self.volume, self.page+1)
 
     def DoPrev(self):
-        if self.page > 1:
-            self.page -= 1
-        self.LoadContent()    
+        if self.lang != 'thaibt':
+            if self.page > 1:
+                self.page -= 1            
+            self.LoadContent()
+        else:
+            self.LoadFiveBookContent(self.volume, self.page-1)                
 
     def OnFindClose(self, event):
         event.GetDialog().Destroy()

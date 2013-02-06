@@ -158,7 +158,7 @@ class SelectBooksDialog(wx.Dialog):
         f = open(os.path.join(sys.path[0],'resources','book_name.pkl'),'rb')
         db = cPickle.load(f)
         f.close()
-        if lang == 'thai' or lang == 'pali' or lang == 'thaiwn':
+        if lang == 'thai' or lang == 'pali' or lang == 'thaiwn' or lang == 'thaimc':
             self.checklist = wx.CheckListBox(self, -1, 
                 choices=[arabic2thai(u'พระไตรปิฎกเล่มที่ %d %s'%(x,db['thai_'+str(x)].decode('utf8','ignore'))) for x in range(1,46)])
         elif lang == 'thaimm':

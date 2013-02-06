@@ -77,6 +77,7 @@ class ResultWindow(wx.html.HtmlWindow):
             self.bookFrames[lang].GenStartPage()
             self.bookFrames[lang].SetVolumnPage(volumn,page)
             self.bookFrames[lang].LoadContent(scroll=scroll_position)
+            
         if hide:
             self.bookFrames[lang].HideBooks()
         
@@ -105,10 +106,6 @@ class ResultWindow(wx.html.HtmlWindow):
         self.bookFrames[lang2].HideBooks()
         self.bookFrames[lang1].SetSize(((w/2)-x,h-30))
         self.bookFrames[lang2].SetSize(((w/2)-x,h-30))
-
-        #print lang1, self.bookFrames[lang1].side
-        #print lang2, self.bookFrames[lang2].side
-        #print ''
 
         if self.bookFrames[lang1].side == 'R':
             self.bookFrames[lang1].Move(((w/2)+x,y))
@@ -181,9 +178,6 @@ class TipiSearchCtrl(wx.SearchCtrl):
                 if len(self.searches) > self.maxSearches:
                     del self.searches[0]
             menu = self.MakeMenu()
-            #font = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
-            #font.SetFaceName('TF Chiangsaen')
-            #menu.SetFont(font)
             self.SetMenu(menu)
 
     def OnTextEntered(self, evt):
@@ -308,12 +302,10 @@ class SearchToolFrame(wx.Frame):
             self.text.SetFont(font)
     
         #langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (วัดนาป่าพง)',u'ไทย (มหาจุฬาฯ)']
-        #langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)',u'ไทย (พุทธทาส)']
-        langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)']
+        #langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)']
         
-        #self.radio1 = wx.RadioBox(panel,-1,u'ภาษา',choices=langs, majorDimension=2)
-        #self.radio1.Bind(wx.EVT_RADIOBOX,self.OnSelectLanguage)
-
+        langs = [u'ไทย (ฉบับหลวง)',u'บาลี (ฉบับหลวง)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)',u'ไทย (จากพระโอษฐ์ ๕ เล่ม)']
+        
         langPanel = wx.Panel(panel,-1)
         langSizer = wx.StaticBoxSizer(wx.StaticBox(langPanel, -1, u'ภาษา'), orient=wx.HORIZONTAL)
         self.comboLang = wx.ComboBox(langPanel,-1,choices=langs,style=wx.CB_DROPDOWN|wx.CB_READONLY)
@@ -515,6 +507,11 @@ class SearchToolFrame(wx.Frame):
                 else:
                     ccode ="#a020f0"
 
+                if self.lang != 'thaibt':
+                    bookname = self.bookNames['%s_%s'%(self.lang,vol.encode('utf8','ignore'))].decode('utf8','ignore')
+                else:
+                    bookname = u''
+                
                 text += u'''
                 <div>
                     <font size="4">
@@ -522,7 +519,7 @@ class SearchToolFrame(wx.Frame):
                         <font color="red"> %s</font>
                     </font><br>'''%(vol,page,self.lang,now,per,total,i,arabic2thai(unicode(i)),label1,arabic2thai(vol),label2,arabic2thai(page),read)\
                  + u'<font size="4">%s</font>'%(excerpts) + u'<br>'\
-                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode,self.bookNames['%s_%s'%(self.lang,vol.encode('utf8','ignore'))].decode('utf8','ignore'),arabic2thai(labelItems))\
+                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode, bookname, arabic2thai(labelItems))\
                  + u'</div><br>'
                  
                  
@@ -596,13 +593,6 @@ class SearchToolFrame(wx.Frame):
         self.statusBar.SetStatusText(u'',2)
         
     def QueryFinished(self, results):
-#        if self.mode == 'partial':
-#            self.results = []
-#            for r in results:
-#                if int(r['volumn'])-1 in self.checkedItems:
-#                    self.results.append(r)
-#        elif self.mode == 'all':
-
         self.results = results
         self.group_results = [0,0,0]
         for result in self.results:
@@ -742,15 +732,14 @@ class SearchToolFrame(wx.Frame):
             self.lang = 'thaimc'
             self.keywords = keywords
         elif self.comboLang.GetSelection() == 4:
-            self.lang = 'thaiwn'
+            self.lang = 'thaibt'
             self.keywords = keywords
         elif self.comboLang.GetSelection() == 5:
-            self.lang = 'thaibt'
+            self.lang = 'thaiwn'
             self.keywords = keywords
         
         self.resultWindow.SetLanguage(self.lang)
         self.resultWindow.SetKeyWords(self.keywords)
-        
 
         thread = SearchThread(self.lang,'content',self.keywords,self.checkedItems,self)
         thread.start()
@@ -807,7 +796,12 @@ class SearchToolFrame(wx.Frame):
 
         self.resultWindow.SetLanguage(self.lang)
         self.resultWindow.SetKeyWords('')
-        self.resultWindow.CreateReadingFrame(1,0)
+
+        if self.lang == 'thaibt':
+            self.resultWindow.CreateReadingFrame(1,1)
+        else:
+            self.resultWindow.CreateReadingFrame(1,0)
+            
         event.Skip()
 
     def OnClickAbout(self, event):
@@ -841,36 +835,42 @@ class SearchToolFrame(wx.Frame):
             self.lang = 'pali'
             self.checkedItems = range(45)
             self.radio2.SetSelection(0)
+            self.radio2.Enable()
             self.radio4.Enable()
         elif self.comboLang.GetSelection() == 0:
             self.text.SetLanguage('thai')
             self.lang = 'thai'
             self.checkedItems = range(45)
             self.radio2.SetSelection(0)
+            self.radio2.Enable()
             self.radio4.Disable()
         elif self.comboLang.GetSelection() == 2:    
             self.text.SetLanguage('thaimm')
             self.lang = 'thaimm'
             self.checkedItems = range(91)
             self.radio2.SetSelection(0)
+            self.radio2.Enable()
             self.radio4.Disable()
         elif self.comboLang.GetSelection() == 3:    
             self.text.SetLanguage('thaimc')
             self.lang = 'thaimc'
             self.checkedItems = range(45)
             self.radio2.SetSelection(0)
+            self.radio2.Enable()
             self.radio4.Disable()
         elif self.comboLang.GetSelection() == 4:    
-            self.text.SetLanguage('thaiwn')
-            self.lang = 'thaiwn'
-            self.checkedItems = range(45)
-            self.radio2.SetSelection(0)
-            self.radio4.Disable()
-        elif self.comboLang.GetSelection() == 5:    
             self.text.SetLanguage('thaibt')
             self.lang = 'thaibt'
+            self.checkedItems = range(45)
+            self.radio2.SetSelection(0)
+            self.radio2.Disable()
+            self.radio4.Disable()
+        elif self.comboLang.GetSelection() == 5:    
+            self.text.SetLanguage('thaiwn')
+            self.lang = 'thaiwn'
             self.checkedItems = range(5)
             self.radio2.SetSelection(0)
+            self.radio2.Enable()
             self.radio4.Disable()
 
         event.Skip()

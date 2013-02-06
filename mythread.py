@@ -41,29 +41,28 @@ class SearchThread(threading.Thread):
         conn = sqlite3.connect(os.path.join(sys.path[0],'resources','%s.db'%(self.lang)))
         searcher = conn.cursor()
         terms = map(lambda term: term.replace('+',' '),self.keywords.split())
-        #c.execute("SELECT volumn, page, content From thai WHERE volumn = '01'")
-        query = 'SELECT * FROM %s WHERE '%(self.lang)
-        query += "content LIKE '%%%s%%' "%(terms[0]) 
-        for term in terms[1:]:
-            query += "AND content LIKE '%%%s%%' "%(term) 
+        
+        args = ()
+        if self.lang != 'thaibt':            
+            query = 'SELECT * FROM %s WHERE '%(self.lang)
+            query += "content LIKE '%%%s%%' "%(terms[0]) 
+            for term in terms[1:]:
+                query += "AND content LIKE '%%%s%%' "%(term) 
 
-        if len(self.checkedItems) > 0:
-            query += 'AND ('
-            query += "volumn = '%02d' "%(self.checkedItems[0]+1)
-            for p in self.checkedItems[1:]:
-                query += "OR volumn = '%02d' "%(p+1)
-            query += ')'
-            #pqobj = Or([Term('volumn',u'%02d'%(p+1)) for p in self.checkedItems])
+            if len(self.checkedItems) > 0:
+                query += 'AND ('
+                query += "volumn = '%02d' "%(self.checkedItems[0]+1)
+                for p in self.checkedItems[1:]:
+                    query += "OR volumn = '%02d' "%(p+1)
+                query += ')'
+        else:
+            query = 'SELECT * FROM speech WHERE content LIKE ?'
+            args = ('%'+self.keywords+'%',)
 
         wx.CallAfter(self.window.QueryStarted)
-
-        #if self.window.radio3.GetSelection() == 1:
-        #    results = self.searcher.search(qobj,sortedby=("volumn","page"),limit=50000)
-        #elif self.window.radio3.GetSelection() == 0:
-        #    results = self.searcher.search(qobj,limit=50000)
         
         new_results = []
-        for result in searcher.execute(query):
+        for result in searcher.execute(query, args):
             r = {}
             if self.lang == 'thai' or self.lang == 'pali':
                 r['volumn'] = result[0]
@@ -84,15 +83,11 @@ class SearchThread(threading.Thread):
                 r['page'] = result[2]
                 r['items'] = result[3]
                 r['content'] = result[4]
+            elif self.lang == 'thaibt':
+                r['volumn'] = result[0]
+                r['page'] = result[1]
+                r['content'] = result[3]
             new_results.append(r)
-
-        #for r in results:
-        #    check = True
-        #    for term in self.keywords.split():
-        #        if term.replace('+',' ') not in r['content']:
-        #            check = False
-        #    if check:
-        #        new_results.append(r)
 
         wx.CallAfter(self.window.QueryFinished, new_results)
         
@@ -105,23 +100,17 @@ class DisplayThread(threading.Thread):
         self.results = results
         self.keywords = keywords
         self.lang = lang
-        #self.segmenter = ICUTokenizer()
-        #self.segmenter = ThaiMinimalTokenizer()
         self.p = p
         self.window = window
         
     def run(self):
         termset = []
         keywords = self.keywords.replace('+',' ')
-        #if self.lang == 'thai' or self.lang == 'thaimm' or self.lang == 'thaiwn' or self.lang == 'thaimc':
-        #    for t in self.segmenter(keywords):
-        #        termset.append(t.text)
-        #elif self.lang == 'pali':
 
         for t in keywords.split():
             termset.append(t)                
 
-        tmp = []
+        items = []
         wx.CallAfter(self.window.DisplayStarted)
         key = '%d:%d'%self.p
         if key not in dataModel:
@@ -135,9 +124,14 @@ class DisplayThread(threading.Thread):
                 
                 if self.lang == 'pali' and 'wxMac' not in wx.PlatformInfo:
                     excerpts = excerpts.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
-                tmp.append((self.p[0]+i+1,r['volumn'].lstrip(u'0'),r['page'].lstrip(u'0'),r['items'],excerpts))
+                
+                if self.lang != 'thaibt':
+                    items.append((self.p[0]+i+1,r['volumn'].lstrip(u'0'),r['page'].lstrip(u'0'),r['items'],excerpts))
+                else:
+                    items.append((self.p[0]+i+1, unicode(r['volumn']), unicode(r['page']), u'0', excerpts))
+                    
                 wx.CallAfter(self.window.UpdateProgress, (i+1)*10)
-            dataModel[key] = tmp
+            dataModel[key] = items
         wx.CallAfter(self.window.DisplayFinished)
 
 class MyHtmlFormatter(object):
