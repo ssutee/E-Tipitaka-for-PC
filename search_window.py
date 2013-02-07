@@ -12,7 +12,7 @@ from whoosh.index import open_dir
 
 from mythread import SearchThread, DisplayThread, dataModel
 from mydialog import *
-from read_window import ReadingToolFrame
+from read_window import ReadingToolFrame, FIVE_BOOKS_TITLES
 from utils import arabic2thai,thai2arabic
 
 import manifest
@@ -34,12 +34,13 @@ class ResultWindow(wx.html.HtmlWindow):
     def SetKeyWords(self, keywords):
         self.keywords = keywords
 
-    def CreateReadingFrame(self, volumn, page, lang=None, isCompare=False,hide=False, item=None):
+    def CreateReadingFrame(self, volume, page, lang=None, isCompare=False,hide=False, item=None):
         if lang is None:
             lang = self.lang
         keywords = u''
         if not isCompare:
             keywords = self.keywords
+            
         if lang not in self.bookFrames:
             self.frameId[lang] = wx.NewId()
             size,pos = None,None
@@ -54,7 +55,7 @@ class ResultWindow(wx.html.HtmlWindow):
                 elif isCompare and lang == 'pali':
                     pos = (w/2)+x,0
             self.bookFrames[lang] = ReadingToolFrame(self,self.frameId[lang],
-                                                          volumn,page,lang=lang, 
+                                                          volume,page,lang=lang, 
                                                           keywords=keywords,size=size,pos=pos)
             self.bookFrames[lang].Show()
             self.bookFrames[lang].Bind(wx.EVT_CLOSE, self.OnFrameClose) 
@@ -66,7 +67,7 @@ class ResultWindow(wx.html.HtmlWindow):
         # scroll to item position
         scroll_position = 0
         if isCompare and item != None:
-            for result in self.bookFrames[lang].GetContent(volumn, page):
+            for result in self.bookFrames[lang].GetContent(volume, page):
                 content = result['content']
                 scroll_position = content.find(u'[%s]'%(arabic2thai(unicode(item))))
                 break;
@@ -75,8 +76,10 @@ class ResultWindow(wx.html.HtmlWindow):
             self.bookFrames[lang].GenStartPage()
         elif lang != 'thaibt' and page != 0:
             self.bookFrames[lang].GenStartPage()
-            self.bookFrames[lang].SetVolumnPage(volumn,page)
+            self.bookFrames[lang].SetVolumePage(volume,page)
             self.bookFrames[lang].LoadContent(scroll=scroll_position)
+        else:
+            self.bookFrames[lang].LoadFiveBookContent(volume, page)
             
         if hide:
             self.bookFrames[lang].HideBooks()
@@ -114,7 +117,6 @@ class ResultWindow(wx.html.HtmlWindow):
             self.bookFrames[lang1].Move((0,y))
             self.bookFrames[lang2].Move(((w/2)+x,y))
 
-
     def CloseBookFrames(self):
         langs = self.bookFrames.keys()
         for lang in langs:
@@ -136,11 +138,11 @@ class ResultWindow(wx.html.HtmlWindow):
         href = link.GetHref()
         cmd,body = href.split(':')
         if cmd == 'p':
-            volumn,page,lang,now,per,total,i = body.split(u'_')
+            volume,page,lang,now,per,total,i = body.split(u'_')
             self.GetParent().AddRead(int(i))
             self.GetParent().UpdateResults(int(now),int(per),int(total))
             self.keywords = self.GetParent().text.GetValue()
-            self.CreateReadingFrame(int(volumn),int(page),hide=True,lang=lang)
+            self.CreateReadingFrame(int(volume),int(page),hide=True,lang=lang)
         elif cmd == 's':
             self.GetParent().text.AppendSearch(body)
             self.GetParent().DoFind(body)
@@ -509,19 +511,23 @@ class SearchToolFrame(wx.Frame):
 
                 if self.lang != 'thaibt':
                     bookname = self.bookNames['%s_%s'%(self.lang,vol.encode('utf8','ignore'))].decode('utf8','ignore')
+                    html_item = u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode, bookname, arabic2thai(labelItems))
                 else:
-                    bookname = u''
+                    bookname, html_item = u'', u''
                 
-                text += u'''
-                <div>
+                html_excerpts = u'<font size="4">%s</font><br>'%(excerpts) 
+                if self.lang != 'thaibt':
+                    entry = u'%s. %s %s %s %s' % (arabic2thai(unicode(i)),label1,arabic2thai(vol),label2,arabic2thai(page))
+                else:
+                    entry = u'%s. %s %s %s' % (arabic2thai(unicode(i)), FIVE_BOOKS_TITLES[int(vol)-1], label2, arabic2thai(page))
+                    
+                html_entry = u'''
                     <font size="4">
-                        <a href="p:%s_%s_%s_%d_%d_%d_%d">%s. %s %s %s %s</a>
-                        <font color="red"> %s</font>
-                    </font><br>'''%(vol,page,self.lang,now,per,total,i,arabic2thai(unicode(i)),label1,arabic2thai(vol),label2,arabic2thai(page),read)\
-                 + u'<font size="4">%s</font>'%(excerpts) + u'<br>'\
-                 + u'<font size="4" color="%s">%s ข้อที่ %s</font>'%(ccode, bookname, arabic2thai(labelItems))\
-                 + u'</div><br>'
-                 
+                        <a href="p:%s_%s_%s_%d_%d_%d_%d">%s</a>
+                        <font color="red">%s</font><br>
+                    </font>
+                '''%(vol,page,self.lang,now,per,total,i,entry,read)
+                text += u'<div>' + html_entry + html_excerpts + html_item + u'</div><br>'
                  
             keywords = self.keywords
             if self.lang == 'pali':
@@ -532,26 +538,29 @@ class SearchToolFrame(wx.Frame):
             s_pages = self.group_results[1]
             a_pages = self.group_results[2]
             
-            info = u'''
-                <div align="center">
-                    <table cellpadding="0">
-                        <tr>
-                            <th align="center"><b><font color="#1e90ff">พระวินัยฯ</font></b></th>
-                            <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
-                            <th align="center"><b><font color="#ff4500">พระสุตตันตฯ</font></b></th>
-                            <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
-                            <th align="center"><b><font color="#a020f0">พระอภิธรรมฯ</font></b></th>                                                        
-                        </tr>
-                        <tr>
-                            <td align="center">%s หน้า</td>
-                            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
-                            <td align="center">%s หน้า</td>
-                            <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
-                            <td align="center">%s หน้า</td>                                                                                
-                        </tr>
-                    </table>
-                </div><br/><p/>
-            ''' % (arabic2thai(unicode(v_pages)),arabic2thai(unicode(s_pages)),arabic2thai(unicode(a_pages)))
+            if self.lang != 'thaibt':
+                info = u'''
+                    <div align="center">
+                        <table cellpadding="0">
+                            <tr>
+                                <th align="center"><b><font color="#1e90ff">พระวินัยฯ</font></b></th>
+                                <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+                                <th align="center"><b><font color="#ff4500">พระสุตตันตฯ</font></b></th>
+                                <th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+                                <th align="center"><b><font color="#a020f0">พระอภิธรรมฯ</font></b></th>                                                        
+                            </tr>
+                            <tr>
+                                <td align="center">%s หน้า</td>
+                                <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
+                                <td align="center">%s หน้า</td>
+                                <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>                            
+                                <td align="center">%s หน้า</td>                                                                                
+                            </tr>
+                        </table>
+                    </div><br/><p/>
+                ''' % (arabic2thai(unicode(v_pages)),arabic2thai(unicode(s_pages)),arabic2thai(unicode(a_pages)))
+            else:
+                info = u''
                 
             header = u'''
                 <div align="center">
@@ -596,7 +605,7 @@ class SearchToolFrame(wx.Frame):
         self.results = results
         self.group_results = [0,0,0]
         for result in self.results:
-            volume = int(result['volumn'])
+            volume = int(result['volume'])
             if volume <= 8:
                 self.group_results[0] += 1
             elif volume <= 33:

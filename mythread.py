@@ -21,11 +21,6 @@ class SearchThread(threading.Thread):
         self.checkedItems = checkedItems
         self.lang = lang
         
-        # Load indexing files
-        #index = open_dir(index)
-        #self.searcher = index.searcher()
-        #self.qparser = QueryParser(field,schema=index.schema)
-
     def term2prefix(self, qobj):
         return Prefix(fieldname=qobj.fieldname,text=qobj.text,boost=qobj.boost)
 
@@ -57,7 +52,10 @@ class SearchThread(threading.Thread):
                 query += ')'
         else:
             query = 'SELECT * FROM speech WHERE content LIKE ?'
-            args = ('%'+self.keywords+'%',)
+            args = ('%'+terms[0]+'%',)
+            for term in terms[1:]:
+                query += ' AND content LIKE ?'
+                args += ('%'+term+'%',)
 
         wx.CallAfter(self.window.QueryStarted)
         
@@ -65,12 +63,12 @@ class SearchThread(threading.Thread):
         for result in searcher.execute(query, args):
             r = {}
             if self.lang == 'thai' or self.lang == 'pali':
-                r['volumn'] = result[0]
+                r['volume'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
                 r['content'] = result[3]
             elif self.lang == 'thaimc':
-                r['volumn'] = result[0]
+                r['volume'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
                 r['header'] = result[3]
@@ -78,13 +76,13 @@ class SearchThread(threading.Thread):
                 r['display'] = result[5]
                 r['content'] = result[6]
             elif self.lang == 'thaimm':
-                r['volumn'] = result[0]
-                r['volumn_orig'] = result[1]
+                r['volume'] = result[0]
+                r['volume_orig'] = result[1]
                 r['page'] = result[2]
                 r['items'] = result[3]
                 r['content'] = result[4]
             elif self.lang == 'thaibt':
-                r['volumn'] = result[0]
+                r['volume'] = result[0]
                 r['page'] = result[1]
                 r['content'] = result[3]
             new_results.append(r)
@@ -126,9 +124,9 @@ class DisplayThread(threading.Thread):
                     excerpts = excerpts.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
                 
                 if self.lang != 'thaibt':
-                    items.append((self.p[0]+i+1,r['volumn'].lstrip(u'0'),r['page'].lstrip(u'0'),r['items'],excerpts))
+                    items.append((self.p[0]+i+1,r['volume'].lstrip(u'0'),r['page'].lstrip(u'0'),r['items'],excerpts))
                 else:
-                    items.append((self.p[0]+i+1, unicode(r['volumn']), unicode(r['page']), u'0', excerpts))
+                    items.append((self.p[0]+i+1, unicode(r['volume']), unicode(r['page']), u'0', excerpts))
                     
                 wx.CallAfter(self.window.UpdateProgress, (i+1)*10)
             dataModel[key] = items

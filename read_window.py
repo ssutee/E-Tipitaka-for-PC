@@ -10,6 +10,22 @@ from utils import arabic2thai,thai2arabic
 from mydialog import *
 from dictionary_window import DictWindow        
 
+class ReferenceWindow(wx.html.HtmlWindow):    
+            
+    def OnLinkClicked(self, link):
+        href = link.GetHref()
+        dlg = wx.SingleChoiceDialog(self.Parent, 'เลือกภาษา', 'พระไตรปิฎกฉบับหลวง', [u'ไทย', u'บาลี'], wx.CHOICEDLG_STYLE)
+        dlg.Center()
+        if dlg.ShowModal() == wx.ID_OK:
+            tokens = href.split('/')
+            volume = thai2arabic(tokens[0])
+            item = thai2arabic(re.split(r'[\-,\w]', tokens[2])[0])
+            if hasattr(self, 'Delegate') and hasattr(self.Delegate, 'OnLinkToReference'):
+                self.Delegate.OnLinkToReference(
+                    u'thai' if dlg.GetStringSelection() == u'ไทย' else u'pali', 
+                    int(volume), int(item))
+        dlg.Destroy()
+
 class Printer(HtmlEasyPrinting):
     def __init__(self):
         HtmlEasyPrinting.__init__(self)
@@ -223,7 +239,7 @@ class ReadingToolFrame(wx.Frame):
         page_setup_data.SetMarginTopLeft((10,10))
         page_setup_data.SetMarginBottomRight((10,10))
         
-        if self.lang == 'thaibt':
+        if self.lang == 'thaibt' and len(self.keywords) == 0:
             self.bookLists.SelectItem(self.FirstVolume, True)
                 
     def CreateHeader(self):
@@ -288,8 +304,18 @@ class ReadingToolFrame(wx.Frame):
         else:
             self.mainWindow.Bind(wx.EVT_LEFT_UP,self.OnSelectText)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.mainWindow,1,flag=wx.EXPAND|wx.LEFT,border=15)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+                
+        sizer.Add(self.mainWindow, 10, flag=wx.EXPAND|wx.LEFT,border=15)
+        
+        if self.lang == 'thaibt':
+            self.refsWindow = ReferenceWindow(self.mainWindowPanel)
+            self.refsWindow.Delegate = self
+            self.refsWindow.SetStandardFonts(self.font.GetPointSize(),self.font.GetFaceName())              
+            sizer.Add(self.refsWindow, 1, flag=wx.EXPAND|wx.ALL, border=5)
+        else:
+            self.refsWindow = None
+        
         self.mainWindowPanel.SetSizer(sizer)
         
 
@@ -542,7 +568,7 @@ class ReadingToolFrame(wx.Frame):
         info = self.bookLists.GetItemPyData(event.GetItem())
         self.LoadFiveBookContent(info[0], info[1], info[2])        
         
-    def LoadFiveBookContent(self, volume, page, section=None):
+    def LoadFiveBookContent(self, volume, page, section=None):        
         self.searcher1.execute('SELECT * FROM speech WHERE book=? AND page=?', (volume, page))
         result = self.searcher1.fetchone()
         if result:
@@ -553,9 +579,18 @@ class ReadingToolFrame(wx.Frame):
             elif len(result[2].split()[1].split('.')) > 1:
                 self.section = int(result[2].split()[1].split('.')[1])
             else:
-                self.section = 0
-            self.LoadContent(content=result[3])   
-            self.GenStartPage()     
+                self.section = 0            
+            self.GenStartPage()
+            self.LoadContent(content=result[3])
+            refs = re.findall(ur'[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+', result[3], re.U)
+            if len(refs) > 0:
+                html = u'<b>อ้างอิง: </b> '
+                for ref in refs:
+                    ref = ref.strip().strip(u')').strip(u'(').strip(u',').strip()
+                    html += u'<a href="%s">%s</a>  '%(ref, ref)
+                self.refsWindow.SetPage(html)
+            else:
+                self.refsWindow.SetPage(u'')
 
     def LoadMenuItems(self):
         menu_items = []
@@ -634,6 +669,8 @@ class ReadingToolFrame(wx.Frame):
         size = font.GetPointSize()
         font.SetPointSize(size+1)
         self.mainWindow.SetFont(font)
+        if self.refsWindow:
+            self.refsWindow.SetStandardFonts(font.GetPointSize(), font.GetFaceName())
         self.processTags()
         self.SetHighLight()
         self.SaveFont(font)
@@ -643,6 +680,8 @@ class ReadingToolFrame(wx.Frame):
         size = font.GetPointSize()
         font.SetPointSize(size-1)
         self.mainWindow.SetFont(font)
+        if self.refsWindow:
+            self.refsWindow.SetStandardFonts(font.GetPointSize(), font.GetFaceName())
         self.processTags()
         self.SetHighLight()
         self.SaveFont(font)
@@ -782,7 +821,7 @@ class ReadingToolFrame(wx.Frame):
         for d in self.GetContent(volume,page):
             items = map(int,d['items'].split())
             if lang == 'thaimm':
-                vol_origs = map(int,d['volumn_orig'].split())
+                vol_origs = map(int,d['volume_orig'].split())
                 volume = vol_origs[0]
                 lang = 'thaimm_orig'     
         
@@ -1034,6 +1073,8 @@ class ReadingToolFrame(wx.Frame):
                 self.SaveFont(font)
                 self.font = font
                 self.mainWindow.SetFont(font)
+                if self.refsWindow:
+                    self.refsWindow.SetStandardFonts(font.GetPointSize(), font.GetFaceName())
                 font = wx.Font(self.font.GetPointSize()+2, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
                 font.SetFaceName(self.font.GetFaceName())
                 self.title1.SetStyle(0,len(self.title1.GetValue()), wx.TextAttr('blue',wx.NullColour,font))                
@@ -1143,12 +1184,12 @@ class ReadingToolFrame(wx.Frame):
                     items = self.dbItem[lang][self.volume][s].keys()
                     text2 = text2 + '\n\t\t %d) %s.%d - %s.%d'%(s,items[0],s,items[-1],s)
             self.mainWindow.SetValue(arabic2thai(text1 + text2 + u'\n\n' + info))
-        else:
-            pass
 
         if 'wxMac' in wx.PlatformInfo:
             font = self.mainWindow.GetFont()
             self.mainWindow.SetFont(font)
+            if self.refsWindow:
+                self.refsWindow.SetStandardFonts(font.GetPointSize(), font.GetFaceName())
         
     def OnSelectText(self, event):
         s,t = self.mainWindow.GetSelection()
@@ -1192,6 +1233,8 @@ class ReadingToolFrame(wx.Frame):
                 fsize = window_font.GetPointSize()
                 font = self.mainWindow.GetFont()
                 self.mainWindow.SetFont(font)
+                if self.refsWindow:
+                    self.refsWindow.SetStandardFonts(font.GetPointSize(), font.GetFaceName())
             else:
                 font = self.mainWindow.GetFont()
                 fsize = font.GetPointSize()
@@ -1223,22 +1266,21 @@ class ReadingToolFrame(wx.Frame):
             else:
                 keywords = self.keywords
                 
+        print 'hight light', keywords        
         if self.content != u'' and keywords != u'':
             font = self.mainWindow.GetFont()
             for term in keywords.replace('+',' ').split():
                 n = self.content.find(term)
                 while n != -1:
+                    print n, n+len(term)
                     self.mainWindow.SetStyle(n,n+len(term), wx.TextAttr('purple',wx.NullColour,font))
                     n = self.content.find(term,n+1)
 
     def SetContent(self,content,keywords=None,display=None,header=None,footer=None,scroll=0):
         self.keywords = keywords
+        
         if self.lang == 'pali':
-            if 'wxMac' not in wx.PlatformInfo:
-                self.content = content.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
-            else:
-                self.content = content.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
-                #self.content = content
+            self.content = content.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')                
         elif self.lang == 'thai' or self.lang == 'thaimm' or self.lang == 'thaiwn' or self.lang == 'thaibt':
             self.content = content
         elif self.lang == 'thaimc':
@@ -1256,6 +1298,7 @@ class ReadingToolFrame(wx.Frame):
         self.mainWindow.SetValue(self.content)
         
         self.processTags()
+        
         if keywords != None and len(keywords.strip()) > 0:
             self.SetHighLight()
             self.statusBar.SetStatusText(u'คำค้นหาคือ "%s"'%(keywords),1)
@@ -1268,7 +1311,7 @@ class ReadingToolFrame(wx.Frame):
             self.mainWindow.ScrollLines(y)
             self.mainWindow.Thaw()
 
-    def SetVolumnPage(self, volume, page):
+    def SetVolumePage(self, volume, page):
         self.volume = volume
         self.page = page
 
@@ -1276,7 +1319,7 @@ class ReadingToolFrame(wx.Frame):
         if self.lang != 'thaibt':
             self.LoadContentNormal(scroll=scroll)
         else:
-            self.SetContent(content, '', None, scroll=scroll)
+            self.SetContent(unicode(content), unicode(self.keywords), None, scroll=scroll)
 
     def GetContent(self, volume, page):
         if self.lang != 'thaibt':            
@@ -1290,12 +1333,12 @@ class ReadingToolFrame(wx.Frame):
         for result in results:
             r = {}
             if self.lang == 'thai' or self.lang == 'pali':
-                r['volumn'] = result[0]
+                r['volume'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
                 r['content'] = result[3]
             elif self.lang == 'thaimc':
-                r['volumn'] = result[0]
+                r['volume'] = result[0]
                 r['page'] = result[1]
                 r['items'] = result[2]
                 r['header'] = result[3]
@@ -1303,8 +1346,8 @@ class ReadingToolFrame(wx.Frame):
                 r['display'] = result[5]
                 r['content'] = result[6]
             elif self.lang == 'thaimm':
-                r['volumn'] = result[0]
-                r['volumn_orig'] = result[1]
+                r['volume'] = result[0]
+                r['volume_orig'] = result[1]
                 r['page'] = result[2]
                 r['items'] = result[3]
                 r['content'] = result[4]
@@ -1348,8 +1391,7 @@ class ReadingToolFrame(wx.Frame):
             else:
                 self.SetContent(unicode(text),unicode(self.keywords),scroll=scroll)
 
-        if self.lang != 'thaibt':
-            self.bookLists.SetSelection(self.volume-1)
+        self.bookLists.SetSelection(self.volume-1)
 
     def DoNext(self):
         if self.lang != 'thaibt':            
@@ -1445,4 +1487,13 @@ class ReadingToolFrame(wx.Frame):
             
         event.Skip()
 
-        
+    def OnLinkToReference(self, lang, volume, item): 
+        if item in self.dbItem[lang][volume][1]:
+            page = self.dbItem[lang][volume][1][item][0]
+        else:
+            page = 0
+
+        print volume, page, item
+
+        self.resultWindow.CreateReadingFrame(volume, page, lang=lang, item=item, isCompare=True)
+        self.resultWindow.VerticalAlignWindows('thaibt', lang)
