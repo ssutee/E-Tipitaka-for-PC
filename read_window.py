@@ -14,7 +14,7 @@ class ReferenceWindow(wx.html.HtmlWindow):
             
     def OnLinkClicked(self, link):
         href = link.GetHref()
-        dlg = wx.SingleChoiceDialog(self.Parent, 'เลือกภาษา', 'พระไตรปิฎกฉบับหลวง', [u'ไทย', u'บาลี'], wx.CHOICEDLG_STYLE)
+        dlg = wx.SingleChoiceDialog(self.Parent, u'เลือกภาษา', u'พระไตรปิฎกฉบับหลวง', [u'ไทย', u'บาลี'], wx.CHOICEDLG_STYLE)
         dlg.Center()
         if dlg.ShowModal() == wx.ID_OK:
             tokens = href.split('/')
@@ -584,7 +584,7 @@ class ReadingToolFrame(wx.Frame):
             self.LoadContent(content=result[3])
             refs = re.findall(ur'[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+', result[3], re.U)
             if len(refs) > 0:
-                html = u'<b>อ้างอิง: </b> '
+                html = u'อ้างอิง:  '
                 for ref in refs:
                     ref = ref.strip().strip(u')').strip(u'(').strip(u',').strip()
                     html += u'<a href="%s">%s</a>  '%(ref, ref)
@@ -1166,7 +1166,8 @@ class ReadingToolFrame(wx.Frame):
         
         self.itemNum.SetValue(u'')
         
-        self.statusBar.SetStatusText(u'', 0)        
+        if self.statusBar:
+            self.statusBar.SetStatusText(u'', 0)        
         
         if self.lang != 'thaibt':
             pages = map(lambda x:u'%s'%(x),range(1,int(self.dbPage['%s_%d'%(self.lang,self.volume)])+1))
@@ -1266,13 +1267,11 @@ class ReadingToolFrame(wx.Frame):
             else:
                 keywords = self.keywords
                 
-        print 'hight light', keywords        
         if self.content != u'' and keywords != u'':
             font = self.mainWindow.GetFont()
             for term in keywords.replace('+',' ').split():
                 n = self.content.find(term)
                 while n != -1:
-                    print n, n+len(term)
                     self.mainWindow.SetStyle(n,n+len(term), wx.TextAttr('purple',wx.NullColour,font))
                     n = self.content.find(term,n+1)
 
@@ -1299,10 +1298,10 @@ class ReadingToolFrame(wx.Frame):
         
         self.processTags()
         
-        if keywords != None and len(keywords.strip()) > 0:
+        if self.statusBar and keywords != None and len(keywords.strip()) > 0:
             self.SetHighLight()
             self.statusBar.SetStatusText(u'คำค้นหาคือ "%s"'%(keywords),1)
-        else:
+        elif self.statusBar:
             self.statusBar.SetStatusText(u'',1)
 
         if scroll > 0:
@@ -1492,8 +1491,6 @@ class ReadingToolFrame(wx.Frame):
             page = self.dbItem[lang][volume][1][item][0]
         else:
             page = 0
-
-        print volume, page, item
 
         self.resultWindow.CreateReadingFrame(volume, page, lang=lang, item=item, isCompare=True)
         self.resultWindow.VerticalAlignWindows('thaibt', lang)
