@@ -306,7 +306,7 @@ class SearchToolFrame(wx.Frame):
         #langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (วัดนาป่าพง)',u'ไทย (มหาจุฬาฯ)']
         #langs = [u'ไทย (บาลีสยามรัฐ)',u'บาลี (บาลีสยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)']
         
-        langs = [u'ไทย (ฉบับหลวง)',u'บาลี (ฉบับหลวง)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)',u'ไทย (จากพระโอษฐ์ ๕ เล่ม)']
+        langs = [u'ไทย (ฉบับหลวง)',u'บาลี (สยามรัฐ)',u'ไทย (มหามกุฏฯ)',u'ไทย (มหาจุฬาฯ)',u'ไทย (จากพระโอษฐ์ ๕ เล่ม)']
         
         langPanel = wx.Panel(panel,-1)
         langSizer = wx.StaticBoxSizer(wx.StaticBox(langPanel, -1, u'ภาษา'), orient=wx.HORIZONTAL)
@@ -638,10 +638,10 @@ class SearchToolFrame(wx.Frame):
             text1 = ''
             if self.lang == 'thai':
                 tmp = u'ไทย'
-                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษา%s ฉบับบาลีสยามรัฐ)</h2></div>'%(self.text.GetValue(),tmp)
+                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษา%s ฉบับหลวง)</h2></div>'%(self.text.GetValue(),tmp)
             elif self.lang == 'pali':
                 tmp = u'บาลี'
-                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษา%s ฉบับบาลีสยามรัฐ)</h2></div>'%(self.text.GetValue(),tmp)
+                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษา%s ฉบับสยามรัฐ)</h2></div>'%(self.text.GetValue(),tmp)
             elif self.lang == 'thaimm':
                 text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษาไทย ฉบับมหามกุฏฯ)</h2></div>'%(self.text.GetValue())
             elif self.lang == 'thaiwn':
@@ -649,7 +649,7 @@ class SearchToolFrame(wx.Frame):
             elif self.lang == 'thaimc':
                 text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษาไทย ฉบับมหาจุฬาฯ)</h2></div>'%(self.text.GetValue())
             elif self.lang == 'thaibt':
-                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ในพระไตรปิฎก (ภาษาไทย ฉบับพุทธทาส)</h2></div>'%(self.text.GetValue())
+                text1 = u'<div align="center"><h2>ไม่พบคำว่า "%s" ใน ๕ เล่มจากพระโอษฐ์ (ภาษาไทย ฉบับท่านพุทธทาส)</h2></div>'%(self.text.GetValue())
 
 
             suggests = self.DoSuggest(self.keywords)

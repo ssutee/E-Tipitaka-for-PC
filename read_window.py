@@ -19,7 +19,7 @@ class ReferenceWindow(wx.html.HtmlWindow):
         if dlg.ShowModal() == wx.ID_OK:
             tokens = href.split('/')
             volume = thai2arabic(tokens[0])
-            item = thai2arabic(re.split(r'[\-,\w]', tokens[2])[0])
+            item = thai2arabic(re.split(r'[–\-,\s]', tokens[2])[0])
             if hasattr(self, 'Delegate') and hasattr(self.Delegate, 'OnLinkToReference'):
                 self.Delegate.OnLinkToReference(
                     u'thai' if dlg.GetStringSelection() == u'ไทย' else u'pali', 
@@ -130,9 +130,9 @@ class ReadingToolFrame(wx.Frame):
         
         title = u''
         if lang == 'thai':
-            title = u'อ่านพระไตรปิฎก (ภาษาไทย ฉบับบาลีสยามรัฐ)'
+            title = u'อ่านพระไตรปิฎก (ภาษาไทย ฉบับหลวง)'
         elif lang == 'pali':
-            title = u'อ่านพระไตรปิฎก (ภาษาบาลี ฉบับบาลีสยามรัฐ)'
+            title = u'อ่านพระไตรปิฎก (ภาษาบาลี ฉบับสยามรัฐ)'
         elif lang == 'thaimm':
             title = u'อ่านพระไตรปิฎก (ภาษาไทย ฉบับมหามกุฏฯ)'
         elif lang == 'thaiwn':
@@ -582,7 +582,7 @@ class ReadingToolFrame(wx.Frame):
                 self.section = 0            
             self.GenStartPage()
             self.LoadContent(content=result[3])
-            refs = re.findall(ur'[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+/[๐๑๒๓๔๕๖๗๘๙\w\-,]+', result[3], re.U)
+            refs = re.findall(ur'[–๐๑๒๓๔๕๖๗๘๙\s\-,]+/[–๐๑๒๓๔๕๖๗๘๙\s\-,]+/[–๐๑๒๓๔๕๖๗๘๙\s\-,]+', result[3], re.U)
             if len(refs) > 0:
                 html = u'อ้างอิง:  '
                 for ref in refs:
@@ -1111,10 +1111,10 @@ class ReadingToolFrame(wx.Frame):
     def GetFullTitle(self, lang, volume):
         if lang == 'thai':
             dlang = u'ไทย'
-            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
+            title1 = u'พระไตรปิฎก ฉบับหลวง (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
         elif lang == 'pali':
             dlang = u'บาลี'
-            title1 = u'พระไตรปิฎก ฉบับบาลีสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
+            title1 = u'พระไตรปิฎก ฉบับสยามรัฐ (ภาษา%s) เล่มที่ %s'%(dlang,arabic2thai(unicode(volume)))
         elif lang == 'thaimm':
             title1 = u'พระไตรปิฎก ฉบับมหามกุฏฯ (ภาษาไทย) เล่มที่ %s'%(arabic2thai(unicode(volume)))
         elif lang == 'thaiwn':

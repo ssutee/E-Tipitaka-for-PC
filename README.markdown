@@ -9,7 +9,7 @@ Windows
 - Windows XP, Windows Vista, and Windows 7
 
 Linux
-- python2.6 and wxpython 2.8
+- python2.6+ and wxpython 2.8
 
 Mac OS
 - OSX 10.6
