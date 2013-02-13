@@ -14,7 +14,7 @@ class ReferenceWindow(wx.html.HtmlWindow):
             
     def OnLinkClicked(self, link):
         href = link.GetHref()
-        dlg = wx.SingleChoiceDialog(self.Parent, u'เลือกภาษา', u'พระไตรปิฎกฉบับหลวง', [u'ไทย', u'บาลี'], wx.CHOICEDLG_STYLE)
+        dlg = wx.SingleChoiceDialog(self.Parent, u'พระไตรปิฎก', u'เปรียบเคียง', [u'ภาษาไทย ฉบับหลวง', u'บาลีสยามรัฐ'], wx.CHOICEDLG_STYLE)
         dlg.Center()
         if dlg.ShowModal() == wx.ID_OK:
             tokens = href.split('/')
@@ -22,7 +22,7 @@ class ReferenceWindow(wx.html.HtmlWindow):
             item = thai2arabic(re.split(r'[–\-,\s]', tokens[2])[0])
             if hasattr(self, 'Delegate') and hasattr(self.Delegate, 'OnLinkToReference'):
                 self.Delegate.OnLinkToReference(
-                    u'thai' if dlg.GetStringSelection() == u'ไทย' else u'pali', 
+                    u'thai' if dlg.GetStringSelection() == u'ภาษาไทย ฉบับหลวง' else u'pali', 
                     int(volume), int(item))
         dlg.Destroy()
 

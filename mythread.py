@@ -54,8 +54,24 @@ class SearchThread(threading.Thread):
             query = 'SELECT * FROM speech WHERE content LIKE ?'
             args = ('%'+terms[0]+'%',)
             for term in terms[1:]:
-                query += ' AND content LIKE ?'
-                args += ('%'+term+'%',)
+                if term.find('v:') == 0:
+                    try:
+                        query += ' AND ('
+                        for vol in term[2:].split(','):
+                            if '-' in vol and len(vol.split('-')) == 2:
+                                start, end = map(int, vol.split('-'))
+                                for i in xrange(start, end+1, 1):
+                                    query += 'book = ? OR '
+                                    args += (i,)
+                            else:
+                                query += 'book = ? OR '
+                                args += (int(vol),)
+                        query = query.rstrip(' OR ') + ')'
+                    except ValueError, e:
+                        pass                    
+                else:
+                    query += ' AND content LIKE ?'
+                    args += ('%'+term+'%',)
 
         wx.CallAfter(self.window.QueryStarted)
         
@@ -104,6 +120,7 @@ class DisplayThread(threading.Thread):
     def run(self):
         termset = []
         keywords = self.keywords.replace('+',' ')
+        keywords = ' '.join(filter(lambda x:x.find('v:') != 0, keywords.split()))
 
         for t in keywords.split():
             termset.append(t)                

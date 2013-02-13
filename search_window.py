@@ -532,6 +532,7 @@ class SearchToolFrame(wx.Frame):
             keywords = self.keywords
             if self.lang == 'pali':
                 keywords = self.keywords.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
+            keywords = ' '.join(filter(lambda x:x.find('v:') != 0, keywords.split()))
                 
             # Add more info about hit pages
             v_pages = self.group_results[0]
