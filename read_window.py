@@ -14,12 +14,14 @@ class ReferenceWindow(wx.html.HtmlWindow):
             
     def OnLinkClicked(self, link):
         href = link.GetHref()
-        dlg = wx.SingleChoiceDialog(self.Parent, u'พระไตรปิฎก', u'เปรียบเคียง', [u'ภาษาไทย ฉบับหลวง', u'บาลีสยามรัฐ'], wx.CHOICEDLG_STYLE)
+        dlg = wx.SingleChoiceDialog(self.Parent, 
+            u'พระไตรปิฎก', u'เทียบเคียง', 
+            [u'ภาษาไทย ฉบับหลวง', u'บาลีสยามรัฐ'], wx.CHOICEDLG_STYLE)
         dlg.Center()
         if dlg.ShowModal() == wx.ID_OK:
-            tokens = href.split('/')
+            tokens = map(unicode.strip,href.split('/'))
             volume = thai2arabic(tokens[0])
-            item = thai2arabic(re.split(r'[–\-,\s]', tokens[2])[0])
+            item = thai2arabic(re.split(r'[–\-,\s]+', tokens[2])[0])
             if hasattr(self, 'Delegate') and hasattr(self.Delegate, 'OnLinkToReference'):
                 self.Delegate.OnLinkToReference(
                     u'thai' if dlg.GetStringSelection() == u'ภาษาไทย ฉบับหลวง' else u'pali', 
@@ -661,6 +663,7 @@ class ReadingToolFrame(wx.Frame):
             for i in xrange(self.volume):
                 child = self.bookLists.GetNextSibling(child)
             self.bookLists.SelectItem(child, True)
+            self.volume = int(tokens[1])
             self.page = int(tokens[3])
             self.LoadFiveBookContent(self.volume, self.page)
     
