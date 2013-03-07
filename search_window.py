@@ -4,7 +4,7 @@ import wx
 import wx.lib.buttons as buttons
 import wx.html
 
-import cPickle, re, os.path, sys, codecs
+import cPickle, re, os.path, sys, codecs, zipfile
 
 from whoosh.spelling import SpellChecker
 from whoosh.filedb.filestore import FileStorage
@@ -252,6 +252,7 @@ class SearchToolFrame(wx.Frame):
         self.speller = {}
         self.checkedItems = range(45)
         self.read = []
+        self.wildcard = u'E-Tipitaka Backup File (*.etz)|*.etz'
 
         for lang in ['thai','pali']:
             st = FileStorage(os.path.join(sys.path[0],'spell_%s'%(lang)))
@@ -294,7 +295,7 @@ class SearchToolFrame(wx.Frame):
         sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.text = TipiSearchCtrl(panel, -1,size=(-1,30),doSearch=self.DoFind)
+        self.text = TipiSearchCtrl(panel, -1,size=(-1,-1),doSearch=self.DoFind)
         if 'wxMac' not in wx.PlatformInfo and self.font != None and self.font.IsOk():
             font = self.font
             font.SetPointSize(16)
@@ -366,6 +367,16 @@ class SearchToolFrame(wx.Frame):
         rightIcon = wx.Image(os.path.join(sys.path[0],'resources','right.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnNext = wx.BitmapButton(panel, -1, wx.BitmapFromImage(rightIcon))
         
+        importIcon = wx.Image(os.path.join(sys.path[0],'resources','import.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        self.btnImport = wx.BitmapButton(panel, -1, wx.BitmapFromImage(importIcon)) 
+        self.btnImport.SetToolTip(wx.ToolTip(u'นำข้อมูลส่วนตัวเข้า'))
+        exportIcon = wx.Image(os.path.join(sys.path[0],'resources','export.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        self.btnExport = wx.BitmapButton(panel, -1, wx.BitmapFromImage(exportIcon))         
+        self.btnExport.SetToolTip(wx.ToolTip(u'นำข้อมูลส่วนตัวออก'))
+        
+        self.btnImport.Bind(wx.EVT_BUTTON, self.OnClickImport)
+        self.btnExport.Bind(wx.EVT_BUTTON, self.OnClickExport)        
+        
         bookIcon = wx.Image(os.path.join(sys.path[0],'resources','books.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnRead = buttons.GenBitmapTextButton(panel,-1,wx.BitmapFromImage(bookIcon),u'อ่านพระไตรปิฎก',size=(-1,40))
         
@@ -375,22 +386,20 @@ class SearchToolFrame(wx.Frame):
         self.btnNext.Disable()
         self.btnPrev.Disable()
         
-        #aboutIcon = wx.Image(os.path.join(sys.path[0],'resources','e-tri_64_icon.ico'),wx.BITMAP_TYPE_ANY).Scale(25,25)
-        self.btnAbout = wx.Button(panel, -1, u'เกี่ยวกับโปรแกรม',size=(-1,35))        
+        self.btnAbout = wx.Button(panel, -1, u'เกี่ยวกับโปรแกรม',size=(-1, -1))        
         self.btnAbout.SetToolTip(wx.ToolTip(u'เกี่ยวกับโปรแกรม E-Tipitaka'))        
         self.btnAbout.Bind(wx.EVT_BUTTON, self.OnClickAbout)
         
-        sizer1.Add(symbolPanel,flag=wx.ALIGN_BOTTOM)
-        sizer1.Add(self.btnFonts,flag=wx.ALIGN_BOTTOM)
+        sizer1.Add(symbolPanel,flag=wx.ALIGN_CENTER)
+        sizer1.Add(self.btnFonts,flag=wx.ALIGN_CENTER)
         sizer1.Add((5,5))
-        sizer1.Add(self.text,1,flag=wx.ALIGN_BOTTOM)
-        sizer1.Add(self.btnFind,flag=wx.ALIGN_BOTTOM)
+        sizer1.Add(self.text,1,wx.ALIGN_CENTER|wx.RIGHT, 3)
+        sizer1.Add(self.btnFind,flag=wx.ALIGN_CENTER)
         sizer1.Add((5,5))
-        sizer1.Add(self.btnAbout,flag=wx.ALIGN_BOTTOM)
+        sizer1.Add(self.btnAbout, 0, flag=wx.ALIGN_CENTER)
         
         sizer2.Add(self.btnRead,flag=wx.ALIGN_BOTTOM)
         sizer2.Add((5,5))
-        #sizer2.Add(self.radio1,flag=wx.ALIGN_BOTTOM)
         sizer2.Add(langPanel,flag=wx.ALIGN_BOTTOM | wx.EXPAND)
         sizer2.Add(self.radio4,flag=wx.ALIGN_BOTTOM | wx.EXPAND)
         sizer2.Add(self.radio2,flag=wx.ALIGN_BOTTOM | wx.EXPAND)
@@ -400,6 +409,10 @@ class SearchToolFrame(wx.Frame):
         sizer2.Add(self.btnPrev,flag=wx.ALIGN_BOTTOM | wx.SHAPED)    
         sizer2.Add(self.btnNext,flag=wx.ALIGN_BOTTOM | wx.SHAPED)
 
+        sizer2.Add((20,-1), 0)
+        
+        sizer2.Add(self.btnExport,flag=wx.ALIGN_BOTTOM | wx.SHAPED)
+        sizer2.Add(self.btnImport,flag=wx.ALIGN_BOTTOM | wx.SHAPED)    
         
         mainSizer.Add(sizer1,1,flag=wx.EXPAND)
         mainSizer.Add(sizer2,1,flag=wx.EXPAND)
@@ -407,7 +420,6 @@ class SearchToolFrame(wx.Frame):
         panel.SetSizer(mainSizer)
 
         if 'wxMac' in wx.PlatformInfo:
-        #    self.btnFonts.Hide()
             symbolPanel.Hide()
         
         return panel
@@ -898,6 +910,30 @@ class SearchToolFrame(wx.Frame):
                 self.radio4.SetSelection(0)
             dialog.Destroy()
         event.Skip()
+        
+    def OnClickImport(self, event):
+        dialog = wx.FileDialog(self, u'เลือกไฟล์ข้อมูลส่วนตัว', os.path.expanduser("~"),
+            '', self.wildcard, wx.OPEN|wx.CHANGE_DIR)
+        if dialog.ShowModal() == wx.ID_OK:
+            self.resultWindow.CloseBookFrames()
+            with zipfile.ZipFile(os.path.join(dialog.GetDirectory(), dialog.GetFilename()), 'r') as fz:
+                fz.extractall(os.path.join(sys.path[0],'config'))
+            wx.MessageBox(u'นำข้อมูลส่วนตัวเข้าสำเร็จ', u'E-Tipitaka')
+        dialog.Destroy()
+
+    def OnClickExport(self, event):
+        from datetime import datetime
+        
+        zip_file = 'backup-%s.etz' % (datetime.now().strftime('%Y-%m-%d'))
+        dialog = wx.FileDialog(self, u'บันทึกข้อมูลส่วนตัว', os.path.expanduser("~"), 
+            zip_file, self.wildcard, wx.SAVE | wx.OVERWRITE_PROMPT)        
+        if dialog.ShowModal() == wx.ID_OK:
+            config_dir = os.path.join(sys.path[0],'config')
+            with zipfile.ZipFile(os.path.join(dialog.GetDirectory(), dialog.GetFilename()), 'w') as fz:
+                for config_file in map(lambda x: os.path.join(config_dir, x), os.listdir(config_dir)):
+                    fz.write(config_file, os.path.split(config_file)[-1])
+            wx.MessageBox(u'นำข้อมูลส่วนตัวออกสำเร็จ', u'E-Tipitaka')
+        dialog.Destroy()
         
     def OnClose(self, event):
         self.text.SaveSearches()
