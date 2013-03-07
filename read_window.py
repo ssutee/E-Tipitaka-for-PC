@@ -335,6 +335,7 @@ class ReadingToolFrame(wx.Frame):
 
         viewSizer.Add(self.btnPrev)
         viewSizer.Add(self.btnNext)
+        
         viewPanel.SetSizer(viewSizer)
 
         # compare to the another
@@ -383,7 +384,8 @@ class ReadingToolFrame(wx.Frame):
             self.btnDict = wx.BitmapButton(self.lexiconPanel, -1, wx.BitmapFromImage(dictIcon)) 
             self.btnDict.SetToolTip(wx.ToolTip(u'พจนานุกรมบาลี-ไทย'))
         
-        self.menu_items = self.LoadMenuItems()        
+        self.menu_items = self.LoadMenuItems()
+        
         self.popupmenu = None
         
         size = self.btnSelFind.GetSize()
@@ -595,34 +597,69 @@ class ReadingToolFrame(wx.Frame):
                 self.refsWindow.SetPage(u'')
 
     def LoadMenuItems(self):
-        menu_items = []
         fav_file = os.path.join(sys.path[0],'config','%s.fav'%(self.lang))
-        if os.path.exists(fav_file):
-            tmp = []
-            for text in codecs.open(fav_file,'r','utf8').readlines():
+        if not os.path.exists(fav_file): 
+            return []
+        menu_items = []        
+        roots = [menu_items]
+        with codecs.open(fav_file,'r','utf8') as f:
+            for text in f:
                 if text.strip() == '': continue
-                tokens = thai2arabic(text.strip()).split()
-                v = int(tokens[1])
-                p = int(tokens[3])
-                tmp.append((v,p,text.strip()))
-            tmp.sort()
-            for v,p,text in tmp:
-                menu_items.append(text)
+                n_root = text.rstrip().count(u'\t')
+                if n_root > len(roots): continue
+                root = roots[n_root]
+                if text.strip()[0] == '~':
+                    child = []
+                    root.append({text.strip().strip(u'~') : child})
+                    try:
+                        roots[n_root+1] = child
+                    except IndexError,e:
+                        roots.append(child)
+                else:
+                    tokens = thai2arabic(text.strip()).split()
+                    root.append((int(tokens[1]), int(tokens[3]), text.strip()))
+        map(lambda x:x.sort(), roots)
         return menu_items        
     
     def LoadBookmarks(self, menu):
-        for text in self.menu_items:
-            item = menu.Append(-1,text)
-            self.Bind(wx.EVT_MENU, self.OnGotoBookmark, item)
-                
+
+        def LoadBookmarks(root, items):
+            for item in items:
+                if isinstance(item, dict):
+                    child = wx.Menu()
+                    folder = item.keys()[0]
+                    LoadBookmarks(child, item[folder])
+                    root.AppendMenu(-1, folder, child)
+                elif isinstance(item, tuple):
+                    menu_item = root.Append(-1, item[2])
+                    menu_item.volume = item[0]
+                    menu_item.page = item[1]
+                    self.Bind(wx.EVT_MENU, self.OnGotoBookmark, menu_item)
+
+        LoadBookmarks(menu, self.menu_items)
+                        
     def SaveBookmarks(self):
+        
+        def SaveBookmarks(items, out, depth=0):
+            for item in items:
+                if isinstance(item, dict):
+                    folder = item.keys()[0]
+                    out.write(u'\t'*depth + '~' + folder + '\n')
+                    SaveBookmarks(item[folder], out, depth+1)
+                elif isinstance(item, tuple):
+                    out.write(u'\t'*depth + item[2] + '\n')
+        
         out = codecs.open(os.path.join(sys.path[0],'config','%s.fav'%(self.lang)),'w','utf8')
-        for text in self.menu_items:
-            out.write(text+'\n')
+        SaveBookmarks(self.menu_items, out)
         out.close()
         
     def SetKeyWords(self, keywords):
         self.keywords = keywords
+        
+    def OnBookmarkManager(self, event):
+        dialog = BookmarkManagerDialog(self, self.menu_items)
+        dialog.ShowModal()
+        dialog.Destroy()
         
     def OnDeleteBookmarkSelected(self, event):
         dialog = wx.MultiChoiceDialog(self, 
@@ -638,12 +675,14 @@ class ReadingToolFrame(wx.Frame):
     def OnBookmarkSelected(self, event):
         if self.page != 0:
             x,y = self.btnStar.GetScreenPosition()
-            w,h = self.btnStar.GetSize()   
-            dialog = BookMarkDialog(self,pos=(x,y+h))
+            w,h = self.btnStar.GetSize()
+            dialog = BookMarkDialog(self, (x,y+h), self.menu_items)
             if dialog.ShowModal() == wx.ID_OK:
-                note = dialog.GetName()
-                name = u'%s : %s' %(arabic2thai(u'เล่มที่ %d หน้าที่ %d'%(self.volume, self.page)),note)
-                self.menu_items.append(name)
+                result = dialog.GetValue()
+                if result != None and len(result) == 2:
+                    container, note = result
+                    note = u'%s : %s' %(arabic2thai(u'เล่มที่ %d หน้าที่ %d'%(self.volume, self.page)), note)
+                    container.append((self.volume, self.page, note))
             dialog.Destroy()
         else:
             wx.MessageBox(u'หน้ายังไม่ได้ถูกเลือก',u'พบข้อผิดพลาด')
@@ -688,7 +727,6 @@ class ReadingToolFrame(wx.Frame):
         self.processTags()
         self.SetHighLight()
         self.SaveFont(font)
-        
         
     def OnClickUp(self, event):
         self.ZoomIn()
@@ -1215,8 +1253,8 @@ class ReadingToolFrame(wx.Frame):
         self.popupmenu = wx.Menu()
         bookmark = self.popupmenu.Append(-1, u'คั่นหน้านี้')
         self.Bind(wx.EVT_MENU, self.OnBookmarkSelected, bookmark)
-        delete = self.popupmenu.Append(-1, u'ลบคั่นหน้า')
-        self.Bind(wx.EVT_MENU, self.OnDeleteBookmarkSelected, delete)
+        manager = self.popupmenu.Append(-1, u'จัดการคั่นหน้า')
+        self.Bind(wx.EVT_MENU, self.OnBookmarkManager, manager)
         self.popupmenu.AppendSeparator()        
         self.LoadBookmarks(self.popupmenu)
         self.toolsPanel.PopupMenu(self.popupmenu,(x,y+h))
