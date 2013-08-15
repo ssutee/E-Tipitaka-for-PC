@@ -172,7 +172,7 @@ class TipiSearchCtrl(wx.SearchCtrl):
         self.lang = lang
         self.searches = []
 
-        logFile = os.path.join(sys.path[0],'config','history.log')
+        logFile = os.path.join('config','history.log')
         if os.path.exists(logFile):
             for text in codecs.open(logFile,'r','utf-8').readlines():
                 if text.strip() == '': continue 
@@ -218,7 +218,7 @@ class TipiSearchCtrl(wx.SearchCtrl):
         return menu
         
     def SaveSearches(self):
-        out = codecs.open(os.path.join(sys.path[0],'config','history.log'),'w','utf-8')
+        out = codecs.open(os.path.join('config','history.log'),'w','utf-8')
         for search in self.searches:
             if self.lang == 'pali':
                 search = search.replace(u'ฐ',u'\uf700').replace(u'ญ',u'\uf70f').replace(u'\u0e4d',u'\uf711')
@@ -240,7 +240,7 @@ class SearchToolFrame(wx.Frame):
             title=u'โปรแกรมตรวจหาและเทียบเคียงพุทธวจนจากพระไตรปิฎก (E-Tipitaka %s)'%(manifest.__version__),size=(1000,700))
 
         icon = wx.IconBundle()
-        icon.AddIconFromFile(os.path.join(sys.path[0],'resources','e-tri_64_icon.ico'), wx.BITMAP_TYPE_ANY)
+        icon.AddIconFromFile(os.path.join('resources','e-tri_64_icon.ico'), wx.BITMAP_TYPE_ANY)
         self.SetIcons(icon)
 
         self.now = 0
@@ -255,10 +255,10 @@ class SearchToolFrame(wx.Frame):
         self.wildcard = u'E-Tipitaka Backup File (*.etz)|*.etz'
 
         for lang in ['thai','pali']:
-            st = FileStorage(os.path.join(sys.path[0],'spell_%s'%(lang)))
+            st = FileStorage(os.path.join('spell_%s'%(lang)))
             self.speller[lang] = SpellChecker(st)
 
-        f = open(os.path.join(sys.path[0],'resources','book_name.pkl'),'rb')
+        f = open(os.path.join('resources','book_name.pkl'),'rb')
         self.bookNames = cPickle.load(f)
         f.close()
  
@@ -333,19 +333,19 @@ class SearchToolFrame(wx.Frame):
         self.radio4.Disable()
         self.radio4.Hide()
 
-        searchIcon = wx.Image(os.path.join(sys.path[0],'resources','search.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
+        searchIcon = wx.Image(os.path.join('resources','search.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
         self.btnFind = buttons.GenBitmapTextButton(panel,-1,wx.BitmapFromImage(searchIcon),u'ค้นหา',size=(65,35))
         self.btnFind.Bind(wx.EVT_BUTTON, self.OnClickFind)
                 
         symbolPanel = wx.Panel(panel,-1)       
         symbolSizer = wx.StaticBoxSizer(wx.StaticBox(symbolPanel, -1, u'อักษรพิเศษ'), orient=wx.HORIZONTAL)
-        nikhahitIcon = wx.Image(os.path.join(sys.path[0],'resources','nikhahit.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
+        nikhahitIcon = wx.Image(os.path.join('resources','nikhahit.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
         self.btnNikhahit = wx.BitmapButton(symbolPanel, -1, wx.BitmapFromImage(nikhahitIcon))         
 
-        thothanIcon = wx.Image(os.path.join(sys.path[0],'resources','thothan.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
+        thothanIcon = wx.Image(os.path.join('resources','thothan.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
         self.btnThoThan = wx.BitmapButton(symbolPanel, -1, wx.BitmapFromImage(thothanIcon))                 
         
-        yoyingIcon = wx.Image(os.path.join(sys.path[0],'resources','yoying.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
+        yoyingIcon = wx.Image(os.path.join('resources','yoying.gif'),wx.BITMAP_TYPE_GIF).Scale(16,16)
         self.btnYoYing = wx.BitmapButton(symbolPanel, -1, wx.BitmapFromImage(yoyingIcon))         
 
         symbolSizer.Add(self.btnNikhahit)
@@ -353,7 +353,7 @@ class SearchToolFrame(wx.Frame):
         symbolSizer.Add(self.btnYoYing)
         symbolPanel.SetSizer(symbolSizer)
 
-        fontsIcon = wx.Image(os.path.join(sys.path[0],'resources','fonts.png'),wx.BITMAP_TYPE_PNG)
+        fontsIcon = wx.Image(os.path.join('resources','fonts.png'),wx.BITMAP_TYPE_PNG)
         self.btnFonts = wx.BitmapButton(panel, -1, wx.BitmapFromImage(fontsIcon),size=(-1,40))
         self.btnFonts.SetToolTip(wx.ToolTip(u'เปลี่ยนรูปแบบตัวหนังสือ'))
 
@@ -362,22 +362,22 @@ class SearchToolFrame(wx.Frame):
         self.btnThoThan.Bind(wx.EVT_BUTTON, self.OnClickThoThan)
         self.btnYoYing.Bind(wx.EVT_BUTTON, self.OnClickYoYing)
 
-        leftIcon = wx.Image(os.path.join(sys.path[0],'resources','left.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        leftIcon = wx.Image(os.path.join('resources','left.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnPrev = wx.BitmapButton(panel, -1, wx.BitmapFromImage(leftIcon)) 
-        rightIcon = wx.Image(os.path.join(sys.path[0],'resources','right.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        rightIcon = wx.Image(os.path.join('resources','right.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnNext = wx.BitmapButton(panel, -1, wx.BitmapFromImage(rightIcon))
         
-        importIcon = wx.Image(os.path.join(sys.path[0],'resources','import.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        importIcon = wx.Image(os.path.join('resources','import.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnImport = wx.BitmapButton(panel, -1, wx.BitmapFromImage(importIcon)) 
         self.btnImport.SetToolTip(wx.ToolTip(u'นำข้อมูลส่วนตัวเข้า'))
-        exportIcon = wx.Image(os.path.join(sys.path[0],'resources','export.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        exportIcon = wx.Image(os.path.join('resources','export.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnExport = wx.BitmapButton(panel, -1, wx.BitmapFromImage(exportIcon))         
         self.btnExport.SetToolTip(wx.ToolTip(u'นำข้อมูลส่วนตัวออก'))
         
         self.btnImport.Bind(wx.EVT_BUTTON, self.OnClickImport)
         self.btnExport.Bind(wx.EVT_BUTTON, self.OnClickExport)        
         
-        bookIcon = wx.Image(os.path.join(sys.path[0],'resources','books.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        bookIcon = wx.Image(os.path.join('resources','books.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnRead = buttons.GenBitmapTextButton(panel,-1,wx.BitmapFromImage(bookIcon),u'อ่านพระไตรปิฎก',size=(-1,40))
         
         self.btnNext.Bind(wx.EVT_BUTTON, self.OnClickNext)
@@ -474,12 +474,12 @@ class SearchToolFrame(wx.Frame):
 
     def SaveFont(self,font):
         t = u'%s,%d,%d,%d,%d'%(font.GetFaceName(),font.GetFamily(),font.GetStyle(),font.GetWeight(),font.GetPointSize())
-        codecs.open(os.path.join(sys.path[0],'config','font_search.log'),'w','utf8').write(t)        
+        codecs.open(os.path.join('config','font_search.log'),'w','utf8').write(t)        
         
     def LoadFont(self):
         font = None
-        if os.path.exists(os.path.join(sys.path[0],'config','font_search.log')):
-            tokens = codecs.open(os.path.join(sys.path[0],'config','font_search.log'),'r','utf8').read().split(',')
+        if os.path.exists(os.path.join('config','font_search.log')):
+            tokens = codecs.open(os.path.join('config','font_search.log'),'r','utf8').read().split(',')
             if len(tokens) == 5:
                 font = wx.Font(int(tokens[4]),int(tokens[1]),int(tokens[2]),int(tokens[3]))
                 font.SetFaceName(tokens[0])
@@ -917,7 +917,7 @@ class SearchToolFrame(wx.Frame):
         if dialog.ShowModal() == wx.ID_OK:
             self.resultWindow.CloseBookFrames()
             with zipfile.ZipFile(os.path.join(dialog.GetDirectory(), dialog.GetFilename()), 'r') as fz:
-                fz.extractall(os.path.join(sys.path[0],'config'))
+                fz.extractall(os.path.join('config'))
             wx.MessageBox(u'นำข้อมูลส่วนตัวเข้าสำเร็จ', u'E-Tipitaka')
         dialog.Destroy()
 
@@ -928,7 +928,7 @@ class SearchToolFrame(wx.Frame):
         dialog = wx.FileDialog(self, u'บันทึกข้อมูลส่วนตัว', os.path.expanduser("~"), 
             zip_file, self.wildcard, wx.SAVE | wx.OVERWRITE_PROMPT)        
         if dialog.ShowModal() == wx.ID_OK:
-            config_dir = os.path.join(sys.path[0],'config')
+            config_dir = os.path.join('config')
             with zipfile.ZipFile(os.path.join(dialog.GetDirectory(), dialog.GetFilename()), 'w') as fz:
                 for config_file in map(lambda x: os.path.join(config_dir, x), os.listdir(config_dir)):
                     fz.write(config_file, os.path.split(config_file)[-1])

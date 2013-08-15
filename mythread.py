@@ -31,47 +31,77 @@ class SearchThread(threading.Thread):
             u = Phrase(qobj.fieldname,qobj.words[1:-1])
             return Or([And([x,u,y]),qobj])
         return Or([And([x,y]),qobj])
+    
+    def thaibt_statement(self, terms):
+        query = 'SELECT * FROM speech WHERE '
+        args = tuple([])
+        for term in terms:
+            if term.find('v:') == 0:
+                try:
+                    query += ' ('
+                    for vol in term[2:].split(','):
+                        if '-' in vol and len(vol.split('-')) == 2:
+                            start, end = map(int, vol.split('-'))
+                            for i in xrange(start, end+1, 1):
+                                query += 'book = ? OR '
+                                args += (i,)
+                        else:
+                            query += 'book = ? OR '
+                            args += (int(vol),)
+                    query = query.rstrip(' OR ') + ') AND'
+                except ValueError, e:
+                    pass                    
+            elif '|' in term:
+                tmp = ''
+                for t in term.split('|'):
+                    if len(t.strip()) > 0:
+                        tmp += 'content LIKE ? OR '
+                        args += ('%'+t+'%',)
+                query += ' (%s) AND' % (tmp.rstrip(' OR'))
+            else:
+                query += 'content LIKE ? AND '
+                args += ('%'+term+'%',)
+                
+        return query.rstrip(' AND'), args
+        
+    def normal_statement(self, terms):
+        query = 'SELECT * FROM %s WHERE '%(self.lang)
+        args = tuple([])
+        for term in terms:
+            if '|' in term:
+                tmp = ''
+                for t in term.split('|'):
+                    if len(t.strip()) > 0:
+                        tmp += 'content LIKE ? OR '
+                        args += ('%'+t+'%',)
+                query += ' (%s) AND' % (tmp.rstrip(' OR '))
+            else:
+                query += ' content LIKE ? AND'
+                args += ('%'+term+'%',)
+        
+        if len(self.checkedItems) > 0:
+            query += ' ('
+            query += "volumn = ?"
+            args += ("%02d"%(self.checkedItems[0]+1), )
+            for p in self.checkedItems[1:]:                
+                query += " OR volumn = ?"
+                args += ("%02d" % (p+1), )
+            query += ')'
+            
+        query = query.rstrip(' AND')
+
+        return query, args
         
     def run(self):
         conn = sqlite3.connect(os.path.join(sys.path[0],'resources','%s.db'%(self.lang)))
         searcher = conn.cursor()
         terms = map(lambda term: term.replace('+',' '),self.keywords.split())
         
-        args = ()
+        query, args = '', ()
         if self.lang != 'thaibt':            
-            query = 'SELECT * FROM %s WHERE '%(self.lang)
-            query += "content LIKE '%%%s%%' "%(terms[0]) 
-            for term in terms[1:]:
-                query += "AND content LIKE '%%%s%%' "%(term) 
-
-            if len(self.checkedItems) > 0:
-                query += 'AND ('
-                query += "volumn = '%02d' "%(self.checkedItems[0]+1)
-                for p in self.checkedItems[1:]:
-                    query += "OR volumn = '%02d' "%(p+1)
-                query += ')'
+            query, args = self.normal_statement(terms)
         else:
-            query = 'SELECT * FROM speech WHERE content LIKE ?'
-            args = ('%'+terms[0]+'%',)
-            for term in terms[1:]:
-                if term.find('v:') == 0:
-                    try:
-                        query += ' AND ('
-                        for vol in term[2:].split(','):
-                            if '-' in vol and len(vol.split('-')) == 2:
-                                start, end = map(int, vol.split('-'))
-                                for i in xrange(start, end+1, 1):
-                                    query += 'book = ? OR '
-                                    args += (i,)
-                            else:
-                                query += 'book = ? OR '
-                                args += (int(vol),)
-                        query = query.rstrip(' OR ') + ')'
-                    except ValueError, e:
-                        pass                    
-                else:
-                    query += ' AND content LIKE ?'
-                    args += ('%'+term+'%',)
+            query, args = self.thaibt_statement(terms)
 
         wx.CallAfter(self.window.QueryStarted)
         
@@ -119,7 +149,7 @@ class DisplayThread(threading.Thread):
         
     def run(self):
         termset = []
-        keywords = self.keywords.replace('+',' ')
+        keywords = self.keywords.replace('+',' ').replace('|',' ')
         keywords = ' '.join(filter(lambda x:x.find('v:') != 0, keywords.split()))
 
         for t in keywords.split():

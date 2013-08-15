@@ -1310,7 +1310,7 @@ class ReadingToolFrame(wx.Frame):
                 
         if self.content != u'' and keywords != u'':
             font = self.mainWindow.GetFont()
-            for term in keywords.replace('+',' ').split():
+            for term in keywords.replace('+',' ').replace('|',' ').split():
                 n = self.content.find(term)
                 while n != -1:
                     self.mainWindow.SetStyle(n,n+len(term), wx.TextAttr('purple',wx.NullColour,font))

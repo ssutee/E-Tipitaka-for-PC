@@ -17,11 +17,9 @@ Create a splash screen widget.
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
 
-        files = os.listdir(os.path.join(sys.path[0],'resources','screens'))
+        files = os.listdir(os.path.join('resources','screens'))
         files = filter(lambda x: x.split('.')[-1].lower() == 'png',files)
-        aBitmap = wx.Image(name = os.path.join(sys.path[0],'resources','screens',random.choice(files))).ConvertToBitmap()
-        #aBitmap = wx.Bitmap(os.path.join(sys.path[0],'resources','screens',random.choice(files)), wx.BITMAP_TYPE_PNG)
-
+        aBitmap = wx.Image(name = os.path.join('resources','screens',random.choice(files))).ConvertToBitmap()
 
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 10000 # milliseconds
