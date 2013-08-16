@@ -371,7 +371,7 @@ class SelectBooksDialog(wx.Dialog):
         w,h = wx.GetDisplaySize()
         self.margin = 150
         wx.Dialog.__init__(self, None, -1, u'โปรดเลือกเล่มที่ต้องการค้นหา',size=(w-self.margin,h-self.margin-30),pos=(self.margin/2,self.margin/2))
-        f = open(os.path.join(sys.path[0],'resources','book_name.pkl'),'rb')
+        f = open(os.path.join('resources','book_name.pkl'),'rb')
         db = cPickle.load(f)
         f.close()
         if lang == 'thai' or lang == 'pali' or lang == 'thaiwn' or lang == 'thaimc':

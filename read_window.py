@@ -153,31 +153,31 @@ class ReadingToolFrame(wx.Frame):
         
         # set icon
         icon = wx.IconBundle()
-        icon.AddIconFromFile(os.path.join(sys.path[0],'resources','e-tri_64_icon.ico'), wx.BITMAP_TYPE_ANY)
+        icon.AddIconFromFile(os.path.join('resources','e-tri_64_icon.ico'), wx.BITMAP_TYPE_ANY)
         self.SetIcons(icon)
         
         # load pickle files      
-        f = open(os.path.join(sys.path[0],'resources','book_page.pkl'),'rb')
+        f = open(os.path.join('resources','book_page.pkl'),'rb')
         self.dbPage = cPickle.load(f)
         f.close()
         
-        f = open(os.path.join(sys.path[0],'resources','book_name.pkl'),'rb')
+        f = open(os.path.join('resources','book_name.pkl'),'rb')
         self.dbName = cPickle.load(f)
         f.close()
         
-        f = open(os.path.join(sys.path[0],'resources','book_item.pkl'),'rb')
+        f = open(os.path.join('resources','book_item.pkl'),'rb')
         self.dbItem = cPickle.load(f)
         f.close()
 
-        f = open(os.path.join(sys.path[0],'resources','maps.pkl'),'rb')
+        f = open(os.path.join('resources','maps.pkl'),'rb')
         self.dbMap = cPickle.load(f)
         f.close()
 
-        f = open(os.path.join(sys.path[0],'resources','mc_map.pkl'),'rb')
+        f = open(os.path.join('resources','mc_map.pkl'),'rb')
         self.dbMcmap = cPickle.load(f)
         f.close()
         
-        self.bt_tree = json.loads(open(os.path.join(sys.path[0],'resources','bt_toc.json')).read())
+        self.bt_tree = json.loads(open(os.path.join('resources','bt_toc.json')).read())
 
         # set parameters
         self.page = page
@@ -189,7 +189,7 @@ class ReadingToolFrame(wx.Frame):
         self.display = None
         self.keywords = keywords
         self.entering = ''
-        self.config_file = os.path.join(sys.path[0],'config','style.txt')
+        self.config_file = os.path.join('config','style.txt')
         self.find_position = 0
         self.fdlg = False
         
@@ -197,22 +197,22 @@ class ReadingToolFrame(wx.Frame):
         self.isHide = False
         
         if self.lang == 'thai':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','thai.db'))
+            conn = sqlite3.connect(os.path.join('resources','thai.db'))
             self.searcher1 = conn.cursor()
         elif self.lang == 'pali':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','pali.db'))
+            conn = sqlite3.connect(os.path.join('resources','pali.db'))
             self.searcher1 = conn.cursor()
         elif self.lang == 'thaimm':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','thaimm.db'))
+            conn = sqlite3.connect(os.path.join('resources','thaimm.db'))
             self.searcher1 = conn.cursor()
         elif self.lang == 'thaiwn':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','thaiwn.db'))
+            conn = sqlite3.connect(os.path.join('resources','thaiwn.db'))
             self.searcher1 = conn.cursor()
         elif self.lang == 'thaimc':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','thaimc.db'))
+            conn = sqlite3.connect(os.path.join('resources','thaimc.db'))
             self.searcher1 = conn.cursor()
         elif self.lang == 'thaibt':
-            conn = sqlite3.connect(os.path.join(sys.path[0],'resources','thaibt.db'))
+            conn = sqlite3.connect(os.path.join('resources','thaibt.db'))
             self.searcher1 = conn.cursor()
 
 
@@ -238,7 +238,7 @@ class ReadingToolFrame(wx.Frame):
         self.printer = Printer()
         page_setup_data = self.printer.GetPageSetupData()
         page_setup_data.SetDefaultMinMargins(False)
-        page_setup_data.SetMarginTopLeft((10,10))
+        page_setup_data.SetMarginTopLeft((20,20))
         page_setup_data.SetMarginBottomRight((10,10))
         
         if self.lang == 'thaibt' and len(self.keywords) == 0:
@@ -328,9 +328,9 @@ class ReadingToolFrame(wx.Frame):
         viewPanel = wx.Panel(self.rightPanel,-1)
         viewSizer = wx.StaticBoxSizer(wx.StaticBox(viewPanel, -1, u'อ่านทีละหน้า'), orient=wx.HORIZONTAL)
 
-        leftIcon = wx.Image(os.path.join(sys.path[0],'resources','left.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        leftIcon = wx.Image(os.path.join('resources','left.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnPrev = wx.BitmapButton(viewPanel, -1, wx.BitmapFromImage(leftIcon)) 
-        rightIcon = wx.Image(os.path.join(sys.path[0],'resources','right.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        rightIcon = wx.Image(os.path.join('resources','right.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnNext = wx.BitmapButton(viewPanel, -1, wx.BitmapFromImage(rightIcon)) 
 
         viewSizer.Add(self.btnPrev)
@@ -367,20 +367,20 @@ class ReadingToolFrame(wx.Frame):
         self.lexiconPanel = wx.Panel(self.rightPanel, -1, size=(-1,-1))
         lexiconSizer = wx.StaticBoxSizer(wx.StaticBox(self.lexiconPanel, -1, u'พจนานุกรม'), orient=wx.HORIZONTAL)
                
-        layoutIcon = wx.Image(os.path.join(sys.path[0],'resources','layout.gif'),wx.BITMAP_TYPE_GIF).Scale(32,32)
+        layoutIcon = wx.Image(os.path.join('resources','layout.gif'),wx.BITMAP_TYPE_GIF).Scale(32,32)
         self.btnLayout = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(layoutIcon))
         self.btnLayout.SetToolTip(wx.ToolTip(u'แสดง/ซ่อน หน้าต่างเลือกหนังสือ'))
         
-        searchIcon = wx.Image(os.path.join(sys.path[0],'resources','search.png'),wx.BITMAP_TYPE_PNG)
+        searchIcon = wx.Image(os.path.join('resources','search.png'),wx.BITMAP_TYPE_PNG)
         self.btnSelFind = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(searchIcon)) 
         self.btnSelFind.SetToolTip(wx.ToolTip(u'ค้นหาจากข้อความที่ถูกเลือก'))
 
-        starIcon = wx.Image(os.path.join(sys.path[0],'resources','star.png'),wx.BITMAP_TYPE_PNG)
+        starIcon = wx.Image(os.path.join('resources','star.png'),wx.BITMAP_TYPE_PNG)
         self.btnStar = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(starIcon)) 
         self.btnStar.SetToolTip(wx.ToolTip(u'ที่คั่นหน้า'))
 
         if self.lang == 'pali': 
-            dictIcon = wx.Image(os.path.join(sys.path[0],'resources','dict.png'),wx.BITMAP_TYPE_PNG)
+            dictIcon = wx.Image(os.path.join('resources','dict.png'),wx.BITMAP_TYPE_PNG)
             self.btnDict = wx.BitmapButton(self.lexiconPanel, -1, wx.BitmapFromImage(dictIcon)) 
             self.btnDict.SetToolTip(wx.ToolTip(u'พจนานุกรมบาลี-ไทย'))
         
@@ -389,21 +389,21 @@ class ReadingToolFrame(wx.Frame):
         self.popupmenu = None
         
         size = self.btnSelFind.GetSize()
-        fontsIcon = wx.Image(os.path.join(sys.path[0],'resources','fonts.png'),wx.BITMAP_TYPE_PNG)
+        fontsIcon = wx.Image(os.path.join('resources','fonts.png'),wx.BITMAP_TYPE_PNG)
         self.btnFonts = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(fontsIcon),size=size)
         self.btnFonts.SetToolTip(wx.ToolTip(u'เปลี่ยนรูปแบบตัวหนังสือ'))
-        incIcon = wx.Image(os.path.join(sys.path[0],'resources','fontSizeUp.gif'),wx.BITMAP_TYPE_GIF)
+        incIcon = wx.Image(os.path.join('resources','fontSizeUp.gif'),wx.BITMAP_TYPE_GIF)
         self.btnUp = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(incIcon),size=size)
         self.btnUp.SetToolTip(wx.ToolTip(u'เพิ่มขนาดตัวหนังสือ'))
-        decIcon = wx.Image(os.path.join(sys.path[0],'resources','fontSizeDown.gif'),wx.BITMAP_TYPE_GIF)
+        decIcon = wx.Image(os.path.join('resources','fontSizeDown.gif'),wx.BITMAP_TYPE_GIF)
         self.btnDown = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(decIcon),size=size)
         self.btnDown.SetToolTip(wx.ToolTip(u'ลดขนาดตัวหนังสือ'))        
 
-        saveIcon = wx.Image(os.path.join(sys.path[0],'resources','save.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
+        saveIcon = wx.Image(os.path.join('resources','save.png'),wx.BITMAP_TYPE_PNG).Scale(32,32)
         self.btnSave = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(saveIcon))
         self.btnSave.SetToolTip(wx.ToolTip(u'บันทึกข้อมูลลงไฟล์'))
 
-        printIcon = wx.Image(os.path.join(sys.path[0],'resources','print.png'),wx.BITMAP_TYPE_PNG)
+        printIcon = wx.Image(os.path.join('resources','print.png'),wx.BITMAP_TYPE_PNG)
         self.btnPrint = wx.BitmapButton(self.toolsPanel, -1, wx.BitmapFromImage(printIcon))
         self.btnPrint.SetToolTip(wx.ToolTip(u'พิมพ์หน้าที่ต้องการ'))
         
@@ -453,11 +453,11 @@ class ReadingToolFrame(wx.Frame):
         # paint
         self.paintPanel = wx.Panel(self.rightPanel,-1)
         
-        paintIcon = wx.Image(os.path.join(sys.path[0],'resources','yellow.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
+        paintIcon = wx.Image(os.path.join('resources','yellow.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
         self.btnPaint = wx.BitmapButton(self.paintPanel, -1, wx.BitmapFromImage(paintIcon))
         self.btnPaint.SetToolTip(wx.ToolTip(u'ระบายสีข้อความที่ถูกเลือก'))
         
-        unPaintIcon = wx.Image(os.path.join(sys.path[0],'resources','white.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
+        unPaintIcon = wx.Image(os.path.join('resources','white.png'),wx.BITMAP_TYPE_PNG).Scale(16,16)
         self.btnUnPaint = wx.BitmapButton(self.paintPanel, -1, wx.BitmapFromImage(unPaintIcon))
         self.btnUnPaint.SetToolTip(wx.ToolTip(u'ระบายสีข้อความที่ถูกเลือก'))
         
@@ -597,7 +597,7 @@ class ReadingToolFrame(wx.Frame):
                 self.refsWindow.SetPage(u'')
 
     def LoadMenuItems(self):
-        fav_file = os.path.join(sys.path[0],'config','%s.fav'%(self.lang))
+        fav_file = os.path.join('config','%s.fav'%(self.lang))
         if not os.path.exists(fav_file): 
             return []
         menu_items = []        
@@ -649,7 +649,7 @@ class ReadingToolFrame(wx.Frame):
                 elif isinstance(item, tuple):
                     out.write(u'\t'*depth + item[2] + '\n')
         
-        out = codecs.open(os.path.join(sys.path[0],'config','%s.fav'%(self.lang)),'w','utf8')
+        out = codecs.open(os.path.join('config','%s.fav'%(self.lang)),'w','utf8')
         SaveBookmarks(self.menu_items, out)
         out.close()
         
@@ -1130,12 +1130,12 @@ class ReadingToolFrame(wx.Frame):
         
     def SaveFont(self,font):
         t = u'%s,%d,%d,%d,%d'%(font.GetFaceName(),font.GetFamily(),font.GetStyle(),font.GetWeight(),font.GetPointSize())
-        codecs.open(os.path.join(sys.path[0],'config','font_read.log'),'w','utf8').write(t)        
+        codecs.open(os.path.join('config','font_read.log'),'w','utf8').write(t)        
         
     def LoadFont(self):
         font = None
-        if os.path.exists(os.path.join(sys.path[0],'config','font_read.log')):
-            tokens = codecs.open(os.path.join(sys.path[0],'config','font_read.log'),'r','utf8').read().split(',')
+        if os.path.exists(os.path.join('config','font_read.log')):
+            tokens = codecs.open(os.path.join('config','font_read.log'),'r','utf8').read().split(',')
             if len(tokens) == 5:
                 font = wx.Font(int(tokens[4]),int(tokens[1]),int(tokens[2]),int(tokens[3]))
                 font.SetFaceName(tokens[0])

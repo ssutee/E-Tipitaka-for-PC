@@ -57,7 +57,8 @@ class SearchThread(threading.Thread):
                     if len(t.strip()) > 0:
                         tmp += 'content LIKE ? OR '
                         args += ('%'+t+'%',)
-                query += ' (%s) AND' % (tmp.rstrip(' OR'))
+                if len(tmp) > 0:                    
+                    query += ' (%s) AND' % (tmp.rstrip(' OR'))
             else:
                 query += 'content LIKE ? AND '
                 args += ('%'+term+'%',)
@@ -74,7 +75,8 @@ class SearchThread(threading.Thread):
                     if len(t.strip()) > 0:
                         tmp += 'content LIKE ? OR '
                         args += ('%'+t+'%',)
-                query += ' (%s) AND' % (tmp.rstrip(' OR '))
+                if len(tmp) > 0:
+                    query += ' (%s) AND' % (tmp.rstrip(' OR '))
             else:
                 query += ' content LIKE ? AND'
                 args += ('%'+term+'%',)
@@ -93,7 +95,7 @@ class SearchThread(threading.Thread):
         return query, args
         
     def run(self):
-        conn = sqlite3.connect(os.path.join(sys.path[0],'resources','%s.db'%(self.lang)))
+        conn = sqlite3.connect(os.path.join('resources','%s.db'%(self.lang)))
         searcher = conn.cursor()
         terms = map(lambda term: term.replace('+',' '),self.keywords.split())
         
@@ -102,6 +104,8 @@ class SearchThread(threading.Thread):
             query, args = self.normal_statement(terms)
         else:
             query, args = self.thaibt_statement(terms)
+
+        print query, args
 
         wx.CallAfter(self.window.QueryStarted)
         

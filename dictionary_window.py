@@ -9,7 +9,7 @@ class DictWindow(wx.Frame):
 
         # set icon
         icon = wx.IconBundle()
-        icon.AddIconFromFile(os.path.join(sys.path[0],'resources','dict.ico'), wx.BITMAP_TYPE_ANY)
+        icon.AddIconFromFile(os.path.join('resources','dict.ico'), wx.BITMAP_TYPE_ANY)
         self.SetIcons(icon)
 
 
@@ -77,7 +77,7 @@ class DictWindow(wx.Frame):
 
         searchWindow = self.GetParent().resultWindow.GetParent()
 
-        self.conn = sqlite3.connect(os.path.join(sys.path[0],'resources','p2t_dict.db'))
+        self.conn = sqlite3.connect(os.path.join('resources','p2t_dict.db'))
         cursor = self.conn.cursor()
 
         cursor.execute('SELECT * FROM p2t')
