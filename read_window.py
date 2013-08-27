@@ -985,7 +985,7 @@ class ReadingToolFrame(wx.Frame):
             msg2 = u' '.join(tmp[3:])
             num = int(self.dbPage['%s_%d'%(lang,volume)])
         else:
-            msg1 = FIVE_BOOKS_TITLES[self.volume-1]
+            msg1 = FIVE_BOOKS_TITLES[int(self.volume)-1]
             msg2 = u''
             num = FIVE_BOOKS_PAGES[self.volume]
         
@@ -1036,7 +1036,7 @@ class ReadingToolFrame(wx.Frame):
             msg2 = u' '.join(tmp[3:])
             num = int(self.dbPage['%s_%d'%(lang,volume)])
         else:
-            msg1 = FIVE_BOOKS_TITLES[self.volume]
+            msg1 = FIVE_BOOKS_TITLES[int(self.volume)-1]
             msg2 = u''
             num = FIVE_BOOKS_PAGES[self.volume]
 
